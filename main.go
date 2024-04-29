@@ -7,16 +7,18 @@ import (
 
 func main() {
 	// Use the http.NewServeMux() function to create an empty servemux.
+	const root = "."
+	const port = "8080"
 	mux := http.NewServeMux()
+	mux.Handle("/", http.FileServer(http.Dir(root)))
 	corsMux := middlewareCors(mux)
 
-	mux.Handle("/", http.FileServer(http.Dir(".")))
-	server := &http.Server{
-		Addr:    ":8080",
+	srv := &http.Server{
+		Addr:    ":" + port,
 		Handler: corsMux,
 	}
-	server.ListenAndServe()
-	fmt.Println(server.Addr)
+	srv.ListenAndServe()
+	fmt.Println(srv.Addr)
 	fmt.Println("https://localhost:8080")
 }
 
