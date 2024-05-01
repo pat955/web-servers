@@ -14,8 +14,8 @@ func main() {
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/app/*", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(root)))))
-	mux.HandleFunc("/metrics", apiCfg.handlerCount)
-	mux.HandleFunc("/healthz", handlerStatus)
+	mux.HandleFunc("GET /metrics", apiCfg.handlerCount)
+	mux.HandleFunc("GET /healthz", handlerStatus)
 	mux.HandleFunc("/reset", apiCfg.handlerResetCount)
 	corsMux := middlewareCors(mux)
 
