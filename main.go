@@ -47,11 +47,34 @@ func handlerStatus(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(http.StatusText(http.StatusOK)))
 }
-func respondWithJSON() {}
+
+func respondWithError(w http.ResponseWriter, statusCode int, msg string) {
+	if statusCode > 499 {
+		log.Printf("Responding with 5XX error: %s", msg)
+	}
+	type errorResponse struct {
+		Error string `json:"error"`
+	}
+	respondWithJSON(w, statusCode, errorResponse{
+		Error: msg,
+	})
+}
+func respondWithJSON(w http.ResponseWriter, statusCode int, payload interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	dat, err := json.Marshal(payload)
+	if err != nil {
+		log.Printf("Error marshalling JSON: %s", err)
+		w.WriteHeader(500)
+		return
+	}
+	w.WriteHeader(statusCode)
+	w.Write(dat)
+}
+
 func handlerValidateChirp(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	type post struct {
-		Body string `json:"body"`
+		Body string
 	}
 	type returnVals struct {
 		Valid bool `json:"valid"`
@@ -60,17 +83,15 @@ func handlerValidateChirp(w http.ResponseWriter, req *http.Request) {
 	decoder := json.NewDecoder(req.Body)
 	err := decoder.Decode(&newPOST)
 	if err != nil {
-		w.WriteHeader(500)
-		w.Write([]byte(`"error":"something went wrong"`))
+		respondWithError(w, 500, "something went wrong")
 		fmt.Println("POST FAILED", err)
+		return
 	}
 	if len(newPOST.Body) > 140 {
-		w.WriteHeader(400)
-		w.Write([]byte(`"error":"Chirp is too long"`))
-	} else {
-		w.WriteHeader(200)
-		w.Write([]byte(`"valid":true`))
+		respondWithError(w, 400, "Chirp is too long")
+		return
 	}
+	respondWithJSON(w, 200, returnVals{Valid: true})
 }
 
 func middlewareLog(next http.Handler) http.Handler {
