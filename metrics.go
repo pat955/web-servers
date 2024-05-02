@@ -8,8 +8,16 @@ import (
 func (cfg *apiConfig) handlerCount(w http.ResponseWriter, req *http.Request) {
 	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	html := fmt.Sprintf("<html>\n\n	<body>\n		<h1>Welcome, Chirpy Admin</h1>\n		<p>Chirpy has been visited %d times!</p>\n	</body>\n\n	</html>", cfg.fileserverHits)
-	w.Write([]byte(fmt.Sprint(html)))
+	w.Write([]byte(fmt.Sprintf(`
+<html>
+
+<body>
+	<h1>Welcome, Chirpy Admin</h1>
+	<p>Chirpy has been visited %d times!</p>
+</body>
+
+</html>
+	`, cfg.fileserverHits)))
 }
 
 func (cfg *apiConfig) handlerResetCount(w http.ResponseWriter, req *http.Request) {
