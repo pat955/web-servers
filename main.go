@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 )
 
 func main() {
@@ -76,4 +77,9 @@ func middlewareLog(next http.Handler) http.Handler {
 		log.Printf("%s %s", r.Method, r.URL.Path)
 		next.ServeHTTP(w, r)
 	})
+}
+
+func censor(s string) string {
+	re := regexp.MustCompile(`(?i)kerfuffle|sharbert|fornax`)
+	return re.ReplaceAllString(s, "****")
 }
