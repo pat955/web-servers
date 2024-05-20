@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -52,24 +51,30 @@ func handlerStatus(w http.ResponseWriter, req *http.Request) {
 func handlerValidateChirp(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	type post struct {
-		Body string
+		Body string `json:"body"`
 	}
-	type returnVals struct {
-		Valid bool `json:"valid"`
+	type cleanedPost struct {
+		Body string `json:"cleaned_body"`
 	}
+
 	newPOST := post{}
 	decoder := json.NewDecoder(req.Body)
 	err := decoder.Decode(&newPOST)
 	if err != nil {
 		respondWithError(w, 500, "something went wrong")
-		fmt.Println("POST FAILED", err)
 		return
 	}
 	if len(newPOST.Body) > 140 {
 		respondWithError(w, 400, "Chirp is too long")
 		return
 	}
-	respondWithJSON(w, 200, returnVals{Valid: true})
+	censored := censor(newPOST.Body)
+	if censored != newPOST.Body {
+		respondWithJSON(w, 200, cleanedPost{Body: censored})
+		return
+	}
+
+	respondWithJSON(w, 200, newPOST)
 }
 
 func middlewareLog(next http.Handler) http.Handler {
