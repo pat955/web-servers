@@ -2,24 +2,32 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 )
 
+const id int = 0
+
 func main() {
+	deleteDB()
+	createDB()
 	// Use the http.NewServeMux() function to create an empty servemux.
 	const root = "."
 	const port = "8080"
 	apiCfg := apiConfig{
 		fileserverHits: 0,
 	}
+
 	mux := http.NewServeMux()
+
 	defaultHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(root))))
 	mux.Handle("/app/*", middlewareLog(defaultHandler))
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerCount)
 	mux.HandleFunc("GET /api/healthz", handlerStatus)
-	mux.HandleFunc("POST /api/validate_chirp", handlerValidateChirp)
+	mux.HandleFunc("POST /api/chirps", handlerChirp)
 	mux.HandleFunc("/api/reset", apiCfg.handlerResetCount)
 	corsMux := middlewareCors(mux)
 
@@ -48,7 +56,7 @@ func handlerStatus(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte(http.StatusText(http.StatusOK)))
 }
 
-func handlerValidateChirp(w http.ResponseWriter, req *http.Request) {
+func handlerChirp(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	type post struct {
 		Body string `json:"body"`
@@ -68,11 +76,10 @@ func handlerValidateChirp(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, 400, "Chirp is too long")
 		return
 	}
+
 	censored := censor(newPOST.Body)
 	respondWithJSON(w, 200, cleanedPost{Body: censored})
 	return
-
-	respondWithJSON(w, 200, newPOST)
 }
 
 func middlewareLog(next http.Handler) http.Handler {
@@ -85,4 +92,19 @@ func middlewareLog(next http.Handler) http.Handler {
 func censor(s string) string {
 	re := regexp.MustCompile(`(?i)kerfuffle|sharbert|fornax`)
 	return re.ReplaceAllString(s, "****")
+}
+
+func createDB() {
+	f, err := os.Create("./database.json")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+}
+
+func deleteDB() {
+	err := os.Remove("./database.json")
+	if err != nil {
+		fmt.Println(err)
+	}
 }
