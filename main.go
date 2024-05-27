@@ -69,10 +69,8 @@ func handlerValidateChirp(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	censored := censor(newPOST.Body)
-	if censored != newPOST.Body {
-		respondWithJSON(w, 200, cleanedPost{Body: censored})
-		return
-	}
+	respondWithJSON(w, 200, cleanedPost{Body: censored})
+	return
 
 	respondWithJSON(w, 200, newPOST)
 }
