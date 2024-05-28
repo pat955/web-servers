@@ -2,10 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"regexp"
 )
 
@@ -79,7 +77,6 @@ func handlerChirp(w http.ResponseWriter, req *http.Request) {
 
 	censored := censor(newPOST.Body)
 	respondWithJSON(w, 200, cleanedPost{Body: censored})
-	return
 }
 
 func middlewareLog(next http.Handler) http.Handler {
@@ -92,19 +89,4 @@ func middlewareLog(next http.Handler) http.Handler {
 func censor(s string) string {
 	re := regexp.MustCompile(`(?i)kerfuffle|sharbert|fornax`)
 	return re.ReplaceAllString(s, "****")
-}
-
-func createDB() {
-	f, err := os.Create("./database.json")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-}
-
-func deleteDB() {
-	err := os.Remove("./database.json")
-	if err != nil {
-		fmt.Println(err)
-	}
 }
