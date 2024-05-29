@@ -2,16 +2,20 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
 )
 
-const id int = 0
-
 func main() {
-	deleteDB()
-	createDB()
+	deleteDB("./database.json")
+	db, err := createDB("./database.json")
+	if err != nil {
+		panic(err)
+	}
+	db.createChirp("something something")
+	fmt.Println(db.loadDB())
 	// Use the http.NewServeMux() function to create an empty servemux.
 	const root = "."
 	const port = "8080"
