@@ -24,19 +24,24 @@ type Chirp struct {
 }
 
 func createDB(path string) (*DB, error) {
-	fmt.Println("creating db")
+	fmt.Println("Creating db")
+	db := DB{Path: path, mux: &sync.RWMutex{}}
+
+	if _, err := os.Stat(path); err == nil {
+		return &db, nil
+	}
 	f, err := os.Create(path)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	db := DB{Path: path, mux: &sync.RWMutex{}}
 	db.writeDB(DBStructure{Chrips: make(map[int]Chirp)})
 	return &db, nil
 }
 
 func deleteDB(path string) {
-	fmt.Println("deleting db")
+	fmt.Println("Deleting db")
+
 	err := os.Remove(path)
 	if err != nil {
 		panic(err)
@@ -82,7 +87,7 @@ func (db *DB) loadDB() (DBStructure, error) {
 
 	return dbStruct, nil
 }
-func (db *DB) getChirps() map[int]Chirp {
+func (db *DB) getChirps() []Chirp {
 	db.mux.RLock()
 	defer db.mux.RUnlock()
 	f, err := os.ReadFile(db.Path)
@@ -91,5 +96,9 @@ func (db *DB) getChirps() map[int]Chirp {
 	}
 	var chirpMap DBStructure
 	json.Unmarshal(f, &chirpMap)
-	return chirpMap.Chrips
+	var allChirps []Chirp
+	for _, chirp := range chirpMap.Chrips {
+		allChirps = append(allChirps, chirp)
+	}
+	return allChirps
 }

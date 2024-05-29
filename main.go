@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -14,10 +13,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	db.createChirp("something something")
-	db.createChirp("even more something")
-	db.createChirp("the last something")
-	fmt.Println(db.loadDB())
+
 	// Use the http.NewServeMux() function to create an empty servemux.
 	const root = "."
 	const port = "8080"
@@ -62,27 +58,25 @@ func handlerStatus(w http.ResponseWriter, req *http.Request) {
 
 func handlerChirp(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	db, err := createDB("./database.json")
+	if err != nil {
+		panic(err)
+	}
 	type post struct {
 		Body string `json:"body"`
 	}
-	type cleanedPost struct {
-		Body string `json:"cleaned_body"`
-	}
 
 	newPOST := post{}
-	decoder := json.NewDecoder(req.Body)
-	err := decoder.Decode(&newPOST)
-	if err != nil {
-		respondWithError(w, 500, "something went wrong")
-		return
-	}
+	json.NewDecoder(req.Body).Decode(&newPOST)
 	if len(newPOST.Body) > 140 {
 		respondWithError(w, 400, "Chirp is too long")
 		return
 	}
-
-	censored := censor(newPOST.Body)
-	respondWithJSON(w, 200, cleanedPost{Body: censored})
+	newChirp, err := db.createChirp(newPOST.Body)
+	if err != nil {
+		panic(err)
+	}
+	respondWithJSON(w, 201, newChirp)
 }
 
 func middlewareLog(next http.Handler) http.Handler {
