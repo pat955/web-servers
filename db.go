@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 )
@@ -66,6 +67,8 @@ func (db *DB) createChirp(body string) (Chirp, error) {
 }
 
 func (db *DB) createUser(email string) (User, error) {
+	fmt.Println(email)
+
 	newUser := User{ID: USERID, Email: email}
 	data, err := db.loadDB()
 	if err != nil {
@@ -99,6 +102,7 @@ func (db *DB) loadDB() (DBStructure, error) {
 
 	return dbStruct, nil
 }
+
 func (db *DB) getChirps() []Chirp {
 	db.mux.RLock()
 	defer db.mux.RUnlock()

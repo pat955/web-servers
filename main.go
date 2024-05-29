@@ -41,18 +41,11 @@ func main() {
 	srv.ListenAndServe()
 }
 
-func handlerStatus(w http.ResponseWriter, req *http.Request) {
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(http.StatusText(http.StatusOK)))
-}
-
 func handlerAddChirp(w http.ResponseWriter, req *http.Request) {
 	db, err := createDB(DBPATH)
 	if err != nil {
 		panic(err)
 	}
-
 	chirp := POST{}
 	json.NewDecoder(req.Body).Decode(&chirp)
 
@@ -106,9 +99,9 @@ func handlerAddUser(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(req.GetBody())
 	user := POST{}
 	json.NewDecoder(req.Body).Decode(&user)
-	fmt.Println()
 
 	newUser, err := db.createUser(user.Body)
 	if err != nil {
