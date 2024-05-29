@@ -17,6 +17,7 @@ type DB struct {
 type DBStructure struct {
 	Chrips map[int]Chirp `json:"chirps"`
 }
+
 type Chirp struct {
 	Id   int    `json:"id"`
 	Body string `json:"body"`
@@ -30,7 +31,7 @@ func createDB(path string) (*DB, error) {
 	}
 	defer f.Close()
 	db := DB{Path: path, mux: &sync.RWMutex{}}
-	db.writeDB(DBStructure{})
+	db.writeDB(DBStructure{Chrips: make(map[int]Chirp)})
 	return &db, nil
 }
 
@@ -45,14 +46,14 @@ func deleteDB(path string) {
 func (db *DB) createChirp(body string) (Chirp, error) {
 	if 140 >= len(body) && len(body) >= 1 {
 		newChirp := Chirp{Id: NEWID, Body: body}
-		NEWID++
+
 		chirpMap, err := db.loadDB()
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(chirpMap.Chrips)
 		chirpMap.Chrips[NEWID] = newChirp
 		db.writeDB(chirpMap)
+		NEWID++
 		return newChirp, nil
 	} else {
 		return Chirp{}, errors.New("invalid chirp")
@@ -78,7 +79,6 @@ func (db *DB) loadDB() (DBStructure, error) {
 	db.mux.RUnlock()
 	var dbStruct DBStructure
 	json.Unmarshal(f, &dbStruct)
-	fmt.Println(dbStruct)
 
 	return dbStruct, nil
 }

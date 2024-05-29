@@ -15,6 +15,8 @@ func main() {
 		panic(err)
 	}
 	db.createChirp("something something")
+	db.createChirp("even more something")
+	db.createChirp("the last something")
 	fmt.Println(db.loadDB())
 	// Use the http.NewServeMux() function to create an empty servemux.
 	const root = "."
