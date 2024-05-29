@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-var NEWID int = 0
+var NEWID int = 1
 
 type DB struct {
 	Path string

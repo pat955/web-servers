@@ -7,12 +7,10 @@ import (
 	"regexp"
 )
 
+const DBPATH string = "./database.json"
+
 func main() {
-	deleteDB("./database.json")
-	db, err := createDB("./database.json")
-	if err != nil {
-		panic(err)
-	}
+	deleteDB(DBPATH)
 
 	// Use the http.NewServeMux() function to create an empty servemux.
 	const root = "."
@@ -28,6 +26,7 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerCount)
 	mux.HandleFunc("GET /api/healthz", handlerStatus)
 	mux.HandleFunc("POST /api/chirps", handlerChirp)
+	mux.HandleFunc("GET /api/chirps", handlerGetChirps)
 	mux.HandleFunc("/api/reset", apiCfg.handlerResetCount)
 	corsMux := middlewareCors(mux)
 
@@ -58,7 +57,7 @@ func handlerStatus(w http.ResponseWriter, req *http.Request) {
 
 func handlerChirp(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	db, err := createDB("./database.json")
+	db, err := createDB(DBPATH)
 	if err != nil {
 		panic(err)
 	}
@@ -77,6 +76,14 @@ func handlerChirp(w http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 	respondWithJSON(w, 201, newChirp)
+}
+
+func handlerGetChirps(w http.ResponseWriter, req *http.Request) {
+	db, err := createDB(DBPATH)
+	if err != nil {
+		panic(err)
+	}
+	respondWithJSON(w, 200, db.getChirps())
 }
 
 func middlewareLog(next http.Handler) http.Handler {
