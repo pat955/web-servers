@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"sync"
 )
@@ -31,7 +30,6 @@ type User struct {
 }
 
 func createDB(path string) (*DB, error) {
-	fmt.Println("Creating db")
 	db := DB{Path: path, mux: &sync.RWMutex{}}
 
 	if _, err := os.Stat(path); err == nil {
@@ -47,8 +45,6 @@ func createDB(path string) (*DB, error) {
 }
 
 func deleteDB(path string) {
-	fmt.Println("Deleting db")
-
 	err := os.Remove(path)
 	if err != nil {
 		panic(err)
@@ -79,7 +75,6 @@ func (db *DB) createUser(email string) (User, error) {
 	db.writeDB(data)
 	USERID++
 	return newUser, nil
-
 }
 
 func (db *DB) writeDB(dbstruct DBStructure) {
