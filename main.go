@@ -2,9 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
+	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 const DBPATH string = "./database.json"
@@ -18,17 +22,18 @@ func main() {
 	apiCfg := apiConfig{
 		fileserverHits: 0,
 	}
-
-	mux := http.NewServeMux()
+	r := mux.NewRouter()
 
 	defaultHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(root))))
-	mux.Handle("/app/*", middlewareLog(defaultHandler))
-	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerCount)
-	mux.HandleFunc("GET /api/healthz", handlerStatus)
-	mux.HandleFunc("POST /api/chirps", handlerChirp)
-	mux.HandleFunc("GET /api/chirps", handlerGetChirps)
-	mux.HandleFunc("/api/reset", apiCfg.handlerResetCount)
-	corsMux := middlewareCors(mux)
+	r.Handle("/app/*", middlewareLog(defaultHandler))
+	r.HandleFunc("/admin/metrics", apiCfg.handlerCount).Methods("GET")
+	r.HandleFunc("/api/healthz", handlerStatus).Methods("GET")
+	r.HandleFunc("/api/chirps", handlerChirp).Methods("POST")
+	r.HandleFunc("/api/chirps", handlerGetChirps).Methods("GET")
+	r.HandleFunc("/api/chirps/{chirpID}", handlerChirpId).Methods("GET")
+	r.HandleFunc("/api/users", handlerAddUser).Methods("POST")
+	r.HandleFunc("/api/reset", apiCfg.handlerResetCount)
+	corsMux := middlewareCors(r)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
@@ -56,22 +61,18 @@ func handlerStatus(w http.ResponseWriter, req *http.Request) {
 }
 
 func handlerChirp(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	db, err := createDB(DBPATH)
 	if err != nil {
 		panic(err)
 	}
-	type post struct {
-		Body string `json:"body"`
-	}
 
-	newPOST := post{}
-	json.NewDecoder(req.Body).Decode(&newPOST)
-	if len(newPOST.Body) > 140 {
+	var newChrip string
+	json.NewDecoder(req.Body).Decode(&newChrip)
+	if len(newChrip) > 140 {
 		respondWithError(w, 400, "Chirp is too long")
 		return
 	}
-	newChirp, err := db.createChirp(newPOST.Body)
+	newChirp, err := db.createChirp(newChrip)
 	if err != nil {
 		panic(err)
 	}
@@ -84,6 +85,42 @@ func handlerGetChirps(w http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 	respondWithJSON(w, 200, db.getChirps())
+}
+func handlerChirpId(w http.ResponseWriter, req *http.Request) {
+	chirpID, ok := mux.Vars(req)["chirpID"]
+	if !ok {
+		fmt.Println("id is missing in parameters")
+	}
+	id, err := strconv.Atoi(chirpID)
+	if err != nil {
+		respondWithError(w, 500, err.Error())
+		return
+	}
+	db, err := createDB(DBPATH)
+	if err != nil {
+		panic(err)
+	}
+	chirpMap, err := db.loadDB()
+	if err != nil {
+		panic(err)
+	}
+	chirp, found := chirpMap.Chrips[id]
+	if !found {
+		respondWithError(w, 404, "Chirp not found")
+		return
+	}
+	respondWithJSON(w, 200, chirp)
+}
+
+func handlerAddUser(w http.ResponseWriter, req *http.Request) {
+	db, err := createDB(DBPATH)
+	if err != nil {
+		panic(err)
+	}
+	var email string
+	json.NewDecoder(req.Body).Decode(&email)
+	db.createUser(email)
+
 }
 
 func middlewareLog(next http.Handler) http.Handler {

@@ -2,25 +2,32 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"sync"
 )
 
-var NEWID int = 1
+var CHIRPID int = 1
+var USERID int = 1
 
 type DB struct {
 	Path string
 	mux  *sync.RWMutex
 }
+
 type DBStructure struct {
 	Chrips map[int]Chirp `json:"chirps"`
+	Users  map[int]User  `json:"users"`
 }
 
 type Chirp struct {
-	Id   int    `json:"id"`
+	ID   int    `json:"id"`
 	Body string `json:"body"`
+}
+
+type User struct {
+	ID    int    `json:"id"`
+	Email string `json:"email"`
 }
 
 func createDB(path string) (*DB, error) {
@@ -35,7 +42,7 @@ func createDB(path string) (*DB, error) {
 		return nil, err
 	}
 	defer f.Close()
-	db.writeDB(DBStructure{Chrips: make(map[int]Chirp)})
+	db.writeDB(DBStructure{Chrips: make(map[int]Chirp), Users: make(map[int]User)})
 	return &db, nil
 }
 
@@ -49,20 +56,30 @@ func deleteDB(path string) {
 }
 
 func (db *DB) createChirp(body string) (Chirp, error) {
-	if 140 >= len(body) && len(body) >= 1 {
-		newChirp := Chirp{Id: NEWID, Body: body}
+	newChirp := Chirp{ID: CHIRPID, Body: body}
 
-		chirpMap, err := db.loadDB()
-		if err != nil {
-			panic(err)
-		}
-		chirpMap.Chrips[NEWID] = newChirp
-		db.writeDB(chirpMap)
-		NEWID++
-		return newChirp, nil
-	} else {
-		return Chirp{}, errors.New("invalid chirp")
+	data, err := db.loadDB()
+	if err != nil {
+		panic(err)
 	}
+	data.Chrips[CHIRPID] = newChirp
+	db.writeDB(data)
+	CHIRPID++
+	return newChirp, nil
+
+}
+
+func (db *DB) createUser(email string) (User, error) {
+	newUser := User{ID: USERID, Email: email}
+	data, err := db.loadDB()
+	if err != nil {
+		panic(err)
+	}
+	data.Users[USERID] = newUser
+	db.writeDB(data)
+	USERID++
+	return newUser, nil
+
 }
 
 func (db *DB) writeDB(dbstruct DBStructure) {
