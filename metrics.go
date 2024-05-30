@@ -26,3 +26,9 @@ func (cfg *apiConfig) handlerResetCount(w http.ResponseWriter, req *http.Request
 	w.WriteHeader(http.StatusOK)
 	//w.Write([]byte(fmt.Sprintf("Hits: %v", cfg.fileserverHits)))
 }
+
+func handlerStatus(w http.ResponseWriter, req *http.Request) {
+	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(http.StatusText(http.StatusOK)))
+}
