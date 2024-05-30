@@ -111,6 +111,11 @@ func handlerAddUser(w http.ResponseWriter, req *http.Request) {
 	}
 	var user User
 	decodeForm(w, req, &user)
+	_, found := db.getUsersMap()[user.Email]
+	if found {
+		respondWithError(w, 409, "user already exists")
+		return
+	}
 	user.ID = USERID
 	db.addUser(user)
 	respondWithJSON(w, 201, PublicUser{ID: user.ID, Email: user.Email})
@@ -126,4 +131,9 @@ func decodeForm(w http.ResponseWriter, r *http.Request, dst interface{}) {
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
 		respondWithError(w, 400, "unable to decode email form")
 	}
+}
+
+type Login struct {
+	Password string `json:"password"`
+	Email    string `json:"email"`
 }

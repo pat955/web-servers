@@ -17,8 +17,8 @@ type DB struct {
 }
 
 type DBStructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
-	Users  map[int]User  `json:"users"`
+	Chirps map[int]Chirp   `json:"chirps"`
+	Users  map[string]User `json:"users"`
 }
 
 type Chirp struct {
@@ -48,7 +48,7 @@ func createDB(path string) (*DB, error) {
 		return nil, err
 	}
 	defer f.Close()
-	db.writeDB(DBStructure{Chirps: make(map[int]Chirp), Users: make(map[int]User)})
+	db.writeDB(DBStructure{Chirps: make(map[int]Chirp), Users: make(map[string]User)})
 	return &db, nil
 }
 
@@ -71,12 +71,13 @@ func (db *DB) addUser(user User) {
 	if err != nil {
 		panic(err)
 	}
-	data.Users[USERID] = user
-	passByte, err := bcrypt.GenerateFromPassword([]byte(user.Password), 0)
+	passByte, err := bcrypt.GenerateFromPassword([]byte(user.Password), 10)
 	if err != nil {
 		panic(err)
 	}
 	user.Password = string(passByte)
+
+	data.Users[user.Email] = user
 	db.writeDB(data)
 	USERID++
 }
@@ -106,16 +107,55 @@ func (db *DB) loadDB() (DBStructure, error) {
 
 func (db *DB) getChirps() []Chirp {
 	db.mux.RLock()
-	defer db.mux.RUnlock()
 	f, err := os.ReadFile(db.Path)
 	if err != nil {
 		panic(err)
 	}
-	var chirpMap DBStructure
-	json.Unmarshal(f, &chirpMap)
+	db.mux.RUnlock()
+	var data DBStructure
+	json.Unmarshal(f, &data)
 	var allChirps []Chirp
-	for _, chirp := range chirpMap.Chirps {
+	for _, chirp := range data.Chirps {
 		allChirps = append(allChirps, chirp)
 	}
 	return allChirps
+}
+
+func (db *DB) getUsers() []User {
+	db.mux.RLock()
+	f, err := os.ReadFile(db.Path)
+	if err != nil {
+		panic(err)
+	}
+	db.mux.RUnlock()
+	var data DBStructure
+	json.Unmarshal(f, &data)
+	var allUsers []User
+	for _, user := range data.Users {
+		allUsers = append(allUsers, user)
+	}
+	return allUsers
+}
+func (db *DB) getChirpMap() map[int]Chirp {
+	db.mux.RLock()
+	f, err := os.ReadFile(db.Path)
+	if err != nil {
+		panic(err)
+	}
+	db.mux.RUnlock()
+	var data DBStructure
+	json.Unmarshal(f, &data)
+	return data.Chirps
+}
+
+func (db *DB) getUsersMap() map[string]User {
+	db.mux.RLock()
+	f, err := os.ReadFile(db.Path)
+	if err != nil {
+		panic(err)
+	}
+	db.mux.RUnlock()
+	var data DBStructure
+	json.Unmarshal(f, &data)
+	return data.Users
 }
