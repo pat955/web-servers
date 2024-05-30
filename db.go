@@ -42,10 +42,7 @@ func createDB(path string) (*DB, error) {
 func deleteDB(path string) {
 	fmt.Println("Deleting db")
 
-	err := os.Remove(path)
-	if err != nil {
-		panic(err)
-	}
+	os.Remove(path)
 }
 
 func (db *DB) createChirp(body string) (Chirp, error) {

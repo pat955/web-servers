@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+
+	"github.com/gorilla/mux"
 )
 
 const DBPATH string = "./database.json"
@@ -18,17 +20,16 @@ func main() {
 	apiCfg := apiConfig{
 		fileserverHits: 0,
 	}
-
-	mux := http.NewServeMux()
+	router := mux.NewRouter()
 
 	defaultHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(root))))
-	mux.Handle("/app/*", middlewareLog(defaultHandler))
-	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerCount)
-	mux.HandleFunc("GET /api/healthz", handlerStatus)
-	mux.HandleFunc("POST /api/chirps", handlerChirp)
-	mux.HandleFunc("GET /api/chirps", handlerGetChirps)
-	mux.HandleFunc("/api/reset", apiCfg.handlerResetCount)
-	corsMux := middlewareCors(mux)
+	router.Handle("/app/*", middlewareLog(defaultHandler))
+	router.HandleFunc("/admin/metrics", apiCfg.handlerCount).Methods("GET")
+	router.HandleFunc("/api/healthz", handlerStatus).Methods("GET")
+	router.HandleFunc("/api/chirps", handlerChirp).Methods("POST")
+	router.HandleFunc("/api/chirps", handlerGetChirps).Methods("GET")
+	router.HandleFunc("/api/reset", apiCfg.handlerResetCount).Methods("GET")
+	corsMux := middlewareCors(router)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
