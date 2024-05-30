@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"flag"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -13,7 +13,11 @@ import (
 const DBPATH string = "./database.json"
 
 func main() {
-	deleteDB(DBPATH)
+	dbg := flag.Bool("debug", false, "Enable debug mode")
+	flag.Parse()
+	if *dbg {
+		deleteDB(DBPATH)
+	}
 
 	// Use the http.NewServeMux() function to create an empty servemux.
 	const root = "."
@@ -68,24 +72,15 @@ func handlerGetChirps(w http.ResponseWriter, req *http.Request) {
 	respondWithJSON(w, 200, db.getChirps())
 }
 
-func censor(s string) string {
-	re := regexp.MustCompile(`(?i)kerfuffle|sharbert|fornax`)
-	return re.ReplaceAllString(s, "****")
-}
-
-type POST struct {
-	Body  string `json:"body"`
-	Email string `json:"email"`
-}
-
 func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {
 	chirpID, ok := mux.Vars(req)["chirpID"]
 	if !ok {
-		fmt.Println("id is missing in parameters")
+		respondWithError(w, 400, "id is missing in parameters")
+		return
 	}
 	id, err := strconv.Atoi(chirpID)
 	if err != nil {
-		respondWithError(w, 500, err.Error())
+		respondWithError(w, 400, err.Error())
 		return
 	}
 	db, err := createDB(DBPATH)
@@ -117,4 +112,15 @@ func handlerAddUser(w http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 	respondWithJSON(w, 201, newChirp)
+}
+
+func censor(s string) string {
+	re := regexp.MustCompile(`(?i)kerfuffle|sharbert|fornax`)
+	return re.ReplaceAllString(s, "****")
+}
+
+// To decode into
+type POST struct {
+	Body  string `json:"body"`
+	Email string `json:"email"`
 }
