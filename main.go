@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+
 	"net/http"
 	"regexp"
 	"strconv"
@@ -37,6 +38,7 @@ func main() {
 	router.HandleFunc("/api/users", handlerAddUser).Methods("POST")
 	router.HandleFunc("/api/reset", apiCfg.handlerResetCount)
 	corsMux := middlewareLog(middlewareCors(router))
+
 
 	srv := &http.Server{
 		Addr:    ":" + port,
@@ -81,6 +83,7 @@ func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {
 	id, err := strconv.Atoi(chirpID)
 	if err != nil {
 		respondWithError(w, 400, err.Error())
+
 		return
 	}
 	db, err := createDB(DBPATH)
@@ -123,4 +126,3 @@ func censor(s string) string {
 type POST struct {
 	Body  string `json:"body"`
 	Email string `json:"email"`
-}
