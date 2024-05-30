@@ -21,13 +21,13 @@ func main() {
 	}
 
 	// Use the http.NewServeMux() function to create an empty servemux.
-	const root = "."
+	const root = "../public"
 	const port = "8080"
 	apiCfg := apiConfig{
 		fileserverHits: 0,
 	}
-	router := mux.NewRouter()
 
+	router := mux.NewRouter()
 	defaultHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(root))))
 	router.Handle("/app/*", middlewareLog(defaultHandler))
 	router.HandleFunc("/admin/metrics", apiCfg.handlerCount).Methods("GET")

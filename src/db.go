@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"sync"
 )
@@ -64,8 +63,6 @@ func (db *DB) createChirp(body string) (Chirp, error) {
 }
 
 func (db *DB) createUser(email string) (User, error) {
-	fmt.Println(email)
-
 	newUser := User{ID: USERID, Email: email}
 	data, err := db.loadDB()
 	if err != nil {
