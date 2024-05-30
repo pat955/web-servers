@@ -2,7 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"flag"
+
 	"net/http"
 	"regexp"
 	"strconv"
@@ -13,7 +14,11 @@ import (
 const DBPATH string = "./database.json"
 
 func main() {
-	deleteDB(DBPATH)
+	dbg := flag.Bool("debug", false, "Enable debug mode")
+	flag.Parse()
+	if *dbg {
+		deleteDB(DBPATH)
+	}
 
 	// Use the http.NewServeMux() function to create an empty servemux.
 	const root = "."
@@ -21,18 +26,19 @@ func main() {
 	apiCfg := apiConfig{
 		fileserverHits: 0,
 	}
-	r := mux.NewRouter()
+	router := mux.NewRouter()
 
 	defaultHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(root))))
-	r.Handle("/app/*", middlewareLog(defaultHandler))
-	r.HandleFunc("/admin/metrics", apiCfg.handlerCount).Methods("GET")
-	r.HandleFunc("/api/healthz", handlerStatus).Methods("GET")
-	r.HandleFunc("/api/chirps", handlerAddChirp).Methods("POST")
-	r.HandleFunc("/api/chirps", handlerGetChirps).Methods("GET")
-	r.HandleFunc("/api/chirps/{chirpID}", handlerAddChirpId).Methods("GET")
-	r.HandleFunc("/api/users", handlerAddUser).Methods("POST")
-	r.HandleFunc("/api/reset", apiCfg.handlerResetCount)
-	corsMux := middlewareLog(middlewareCors(r))
+	router.Handle("/app/*", middlewareLog(defaultHandler))
+	router.HandleFunc("/admin/metrics", apiCfg.handlerCount).Methods("GET")
+	router.HandleFunc("/api/healthz", handlerStatus).Methods("GET")
+	router.HandleFunc("/api/chirps", handlerAddChirp).Methods("POST")
+	router.HandleFunc("/api/chirps", handlerGetChirps).Methods("GET")
+	router.HandleFunc("/api/chirps/{chirpID}", handlerAddChirpId).Methods("GET")
+	router.HandleFunc("/api/users", handlerAddUser).Methods("POST")
+	router.HandleFunc("/api/reset", apiCfg.handlerResetCount)
+	corsMux := middlewareLog(middlewareCors(router))
+
 
 	srv := &http.Server{
 		Addr:    ":" + port,
@@ -71,11 +77,13 @@ func handlerGetChirps(w http.ResponseWriter, req *http.Request) {
 func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {
 	chirpID, ok := mux.Vars(req)["chirpID"]
 	if !ok {
-		fmt.Println("id is missing in parameters")
+		respondWithError(w, 400, "id is missing in parameters")
+		return
 	}
 	id, err := strconv.Atoi(chirpID)
 	if err != nil {
-		respondWithError(w, 500, err.Error())
+		respondWithError(w, 400, err.Error())
+
 		return
 	}
 	db, err := createDB(DBPATH)
@@ -99,15 +107,14 @@ func handlerAddUser(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(req.GetBody())
-	user := POST{}
-	json.NewDecoder(req.Body).Decode(&user)
 
-	newUser, err := db.createUser(user.Body)
+	chirp := POST{}
+	json.NewDecoder(req.Body).Decode(&chirp)
+	newChirp, err := db.createUser(chirp.Email)
 	if err != nil {
 		panic(err)
 	}
-	respondWithJSON(w, 201, newUser)
+	respondWithJSON(w, 201, newChirp)
 }
 
 func censor(s string) string {
@@ -115,6 +122,7 @@ func censor(s string) string {
 	return re.ReplaceAllString(s, "****")
 }
 
+// To decode into
 type POST struct {
-	Body string `json:"body"`
-}
+	Body  string `json:"body"`
+	Email string `json:"email"`
