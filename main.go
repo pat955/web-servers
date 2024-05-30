@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -27,7 +29,7 @@ func main() {
 	router.HandleFunc("/api/healthz", handlerStatus).Methods("GET")
 	router.HandleFunc("/api/chirps", handlerAddChirp).Methods("POST")
 	router.HandleFunc("/api/chirps", handlerGetChirps).Methods("GET")
-	// router.HandleFunc("/api/chirps/{chirpID}", handlerAddChirpId).Methods("GET")
+	router.HandleFunc("/api/chirps/{chirpID}", handlerAddChirpId).Methods("GET")
 	// router.HandleFunc("/api/users", handlerAddUser).Methods("POST")
 	router.HandleFunc("/api/reset", apiCfg.handlerResetCount)
 	corsMux := middlewareLog(middlewareCors(router))
@@ -73,4 +75,30 @@ func censor(s string) string {
 
 type POST struct {
 	Body string `json:"body"`
+}
+
+func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {
+	chirpID, ok := mux.Vars(req)["chirpID"]
+	if !ok {
+		fmt.Println("id is missing in parameters")
+	}
+	id, err := strconv.Atoi(chirpID)
+	if err != nil {
+		respondWithError(w, 500, err.Error())
+		return
+	}
+	db, err := createDB(DBPATH)
+	if err != nil {
+		panic(err)
+	}
+	chirpMap, err := db.loadDB()
+	if err != nil {
+		panic(err)
+	}
+	chirp, found := chirpMap.Chrips[id]
+	if !found {
+		respondWithError(w, 404, "Chirp not found")
+		return
+	}
+	respondWithJSON(w, 200, chirp)
 }
