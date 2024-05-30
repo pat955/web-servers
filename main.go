@@ -30,7 +30,7 @@ func main() {
 	router.HandleFunc("/api/chirps", handlerAddChirp).Methods("POST")
 	router.HandleFunc("/api/chirps", handlerGetChirps).Methods("GET")
 	router.HandleFunc("/api/chirps/{chirpID}", handlerAddChirpId).Methods("GET")
-	// router.HandleFunc("/api/users", handlerAddUser).Methods("POST")
+	router.HandleFunc("/api/users", handlerAddUser).Methods("POST")
 	router.HandleFunc("/api/reset", apiCfg.handlerResetCount)
 	corsMux := middlewareLog(middlewareCors(router))
 
@@ -74,7 +74,8 @@ func censor(s string) string {
 }
 
 type POST struct {
-	Body string `json:"body"`
+	Body  string `json:"body"`
+	Email string `json:"email"`
 }
 
 func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {
@@ -101,4 +102,19 @@ func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	respondWithJSON(w, 200, chirp)
+}
+
+func handlerAddUser(w http.ResponseWriter, req *http.Request) {
+	db, err := createDB(DBPATH)
+	if err != nil {
+		panic(err)
+	}
+
+	chirp := POST{}
+	json.NewDecoder(req.Body).Decode(&chirp)
+	newChirp, err := db.createUser(chirp.Email)
+	if err != nil {
+		panic(err)
+	}
+	respondWithJSON(w, 201, newChirp)
 }
