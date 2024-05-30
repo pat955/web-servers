@@ -36,6 +36,7 @@ func main() {
 	router.HandleFunc("/api/chirps", handlerGetChirps).Methods("GET")
 	router.HandleFunc("/api/chirps/{chirpID}", handlerAddChirpId).Methods("GET")
 	router.HandleFunc("/api/users", handlerAddUser).Methods("POST")
+	router.HandleFunc("/api/login", handlerLogin).Methods("POST")
 	router.HandleFunc("/api/reset", apiCfg.handlerResetCount)
 	corsMux := middlewareLog(middlewareCors(router))
 
@@ -44,6 +45,10 @@ func main() {
 		Handler: corsMux,
 	}
 	srv.ListenAndServe()
+}
+
+func handlerLogin(w http.ResponseWriter, req *http.Request) {
+
 }
 
 func handlerAddChirp(w http.ResponseWriter, req *http.Request) {
@@ -104,11 +109,11 @@ func handlerAddUser(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	var body User
-	decodeForm(w, req, &body)
-	body.ID = USERID
-	db.addUser(body)
-	respondWithJSON(w, 201, body)
+	var user User
+	decodeForm(w, req, &user)
+	user.ID = USERID
+	db.addUser(user)
+	respondWithJSON(w, 201, PublicUser{ID: user.ID, Email: user.Email})
 }
 
 func censor(s string) string {
@@ -116,12 +121,7 @@ func censor(s string) string {
 	return re.ReplaceAllString(s, "****")
 }
 
-// To decode into
-type POST struct {
-	Body  string `json:"body"`
-	Email string `json:"email"`
-}
-
+// decodes json into your provided struct. Using this to avoid making a massive all encompassing struct
 func decodeForm(w http.ResponseWriter, r *http.Request, dst interface{}) {
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
 		respondWithError(w, 400, "unable to decode email form")

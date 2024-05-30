@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"os"
 	"sync"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 var CHIRPID int = 1
@@ -28,6 +30,11 @@ type User struct {
 	ID       int    `json:"id"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type PublicUser struct {
+	ID    int    `json:"id"`
+	Email string `json:"email"`
 }
 
 func createDB(path string) (*DB, error) {
@@ -57,7 +64,6 @@ func (db *DB) addChirp(chirp Chirp) {
 	data.Chirps[CHIRPID] = chirp
 	db.writeDB(data)
 	CHIRPID++
-
 }
 
 func (db *DB) addUser(user User) {
@@ -66,6 +72,11 @@ func (db *DB) addUser(user User) {
 		panic(err)
 	}
 	data.Users[USERID] = user
+	passByte, err := bcrypt.GenerateFromPassword([]byte(user.Password), 0)
+	if err != nil {
+		panic(err)
+	}
+	user.Password = string(passByte)
 	db.writeDB(data)
 	USERID++
 }
