@@ -51,18 +51,17 @@ func handlerAddChirp(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	chirp := POST{}
-	json.NewDecoder(req.Body).Decode(&chirp)
+	var chirp Chirp
+	decodeForm(w, req, &chirp)
+	chirp.Body = censor(chirp.Body)
 
 	if len(chirp.Body) > 140 {
 		respondWithError(w, 400, "Chirp is too long")
 		return
 	}
-	newChirp, err := db.createChirp(censor(chirp.Body))
-	if err != nil {
-		panic(err)
-	}
-	respondWithJSON(w, 201, newChirp)
+	chirp.ID = CHIRPID
+	db.addChirp(chirp)
+	respondWithJSON(w, 201, chirp)
 }
 
 func handlerGetChirps(w http.ResponseWriter, req *http.Request) {
@@ -82,7 +81,6 @@ func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {
 	id, err := strconv.Atoi(chirpID)
 	if err != nil {
 		respondWithError(w, 400, err.Error())
-
 		return
 	}
 	db, err := createDB(DBPATH)
@@ -93,7 +91,7 @@ func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	chirp, found := chirpMap.Chrips[id]
+	chirp, found := chirpMap.Chirps[id]
 	if !found {
 		respondWithError(w, 404, "Chirp not found")
 		return
@@ -106,14 +104,11 @@ func handlerAddUser(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-
-	chirp := POST{}
-	json.NewDecoder(req.Body).Decode(&chirp)
-	newChirp, err := db.createUser(chirp.Email)
-	if err != nil {
-		panic(err)
-	}
-	respondWithJSON(w, 201, newChirp)
+	var body User
+	decodeForm(w, req, &body)
+	body.ID = USERID
+	db.addUser(body)
+	respondWithJSON(w, 201, body)
 }
 
 func censor(s string) string {
@@ -125,4 +120,10 @@ func censor(s string) string {
 type POST struct {
 	Body  string `json:"body"`
 	Email string `json:"email"`
+}
+
+func decodeForm(w http.ResponseWriter, r *http.Request, dst interface{}) {
+	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+		respondWithError(w, 400, "unable to decode email form")
+	}
 }

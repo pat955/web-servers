@@ -15,7 +15,7 @@ type DB struct {
 }
 
 type DBStructure struct {
-	Chrips map[int]Chirp `json:"chirps"`
+	Chirps map[int]Chirp `json:"chirps"`
 	Users  map[int]User  `json:"users"`
 }
 
@@ -25,8 +25,9 @@ type Chirp struct {
 }
 
 type User struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
+	ID       int    `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func createDB(path string) (*DB, error) {
@@ -40,7 +41,7 @@ func createDB(path string) (*DB, error) {
 		return nil, err
 	}
 	defer f.Close()
-	db.writeDB(DBStructure{Chrips: make(map[int]Chirp), Users: make(map[int]User)})
+	db.writeDB(DBStructure{Chirps: make(map[int]Chirp), Users: make(map[int]User)})
 	return &db, nil
 }
 
@@ -48,30 +49,25 @@ func deleteDB(path string) {
 	os.Remove(path)
 }
 
-func (db *DB) createChirp(body string) (Chirp, error) {
-	newChirp := Chirp{ID: CHIRPID, Body: body}
-
+func (db *DB) addChirp(chirp Chirp) {
 	data, err := db.loadDB()
 	if err != nil {
 		panic(err)
 	}
-	data.Chrips[CHIRPID] = newChirp
+	data.Chirps[CHIRPID] = chirp
 	db.writeDB(data)
 	CHIRPID++
-	return newChirp, nil
 
 }
 
-func (db *DB) createUser(email string) (User, error) {
-	newUser := User{ID: USERID, Email: email}
+func (db *DB) addUser(user User) {
 	data, err := db.loadDB()
 	if err != nil {
 		panic(err)
 	}
-	data.Users[USERID] = newUser
+	data.Users[USERID] = user
 	db.writeDB(data)
 	USERID++
-	return newUser, nil
 }
 
 func (db *DB) writeDB(dbstruct DBStructure) {
@@ -107,7 +103,7 @@ func (db *DB) getChirps() []Chirp {
 	var chirpMap DBStructure
 	json.Unmarshal(f, &chirpMap)
 	var allChirps []Chirp
-	for _, chirp := range chirpMap.Chrips {
+	for _, chirp := range chirpMap.Chirps {
 		allChirps = append(allChirps, chirp)
 	}
 	return allChirps
