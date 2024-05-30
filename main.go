@@ -39,7 +39,6 @@ func main() {
 	router.HandleFunc("/api/reset", apiCfg.handlerResetCount)
 	corsMux := middlewareLog(middlewareCors(router))
 
-
 	srv := &http.Server{
 		Addr:    ":" + port,
 		Handler: corsMux,
@@ -126,3 +125,4 @@ func censor(s string) string {
 type POST struct {
 	Body  string `json:"body"`
 	Email string `json:"email"`
+}
