@@ -72,7 +72,7 @@ func handlerChirp(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, 400, "Chirp is too long")
 		return
 	}
-	newChirp, err := db.createChirp(newPOST.Body)
+	newChirp, err := db.createChirp(censor(newPOST.Body))
 	if err != nil {
 		panic(err)
 	}
