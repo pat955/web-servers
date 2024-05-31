@@ -3,29 +3,52 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"os"
+	"time"
 
 	"net/http"
 	"regexp"
 	"strconv"
 
+	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const DBPATH string = "./database.json"
 
 func main() {
+	godotenv.Load("../.env")
+	jwtSecret := os.Getenv("JWT_SECRET")
+
+	// debug flag, deletes the db if $ ./out --debug
 	dbg := flag.Bool("debug", false, "Enable debug mode")
 	flag.Parse()
 	if *dbg {
 		deleteDB(DBPATH)
 	}
 
-	// Use the http.NewServeMux() function to create an empty servemux.
 	const root = "../public"
 	const port = "8080"
 	apiCfg := apiConfig{
 		fileserverHits: 0,
+		JWTSecret:      jwtSecret,
 	}
+
+	claims := &jwt.RegisteredClaims{
+		Issuer: "Chirpy",
+		IssuedAt: time.Now(),
+		ExpiresAt: jwt.NewNumericDate(time.Now()+time.Unix(120)),
+		Subject: string(user.id)
+	}
+	
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	ss, err := token.SignedString(mySigningKey)
+	fmt.Println(ss, err)
+	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims, token.SignedString)
+
 
 	router := mux.NewRouter()
 	defaultHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(root))))
@@ -36,6 +59,7 @@ func main() {
 	router.HandleFunc("/api/chirps", handlerGetChirps).Methods("GET")
 	router.HandleFunc("/api/chirps/{chirpID}", handlerAddChirpId).Methods("GET")
 	router.HandleFunc("/api/users", handlerAddUser).Methods("POST")
+	router.HandleFunc("/api/users", handlerAuth).Methods("PUT")
 	router.HandleFunc("/api/login", handlerLogin).Methods("POST")
 	router.HandleFunc("/api/reset", apiCfg.handlerResetCount)
 	corsMux := middlewareLog(middlewareCors(router))
@@ -47,7 +71,28 @@ func main() {
 	srv.ListenAndServe()
 }
 
+func handlerAuth(w http.ResponseWriter, req *http.Request){
+	bearer := req.Header.Get("Bearer")
+	respondWithJSON(w, 200, UserTokenResponse{ID: user.id, })
+}
+
 func handlerLogin(w http.ResponseWriter, req *http.Request) {
+	db, _ := createDB(DBPATH)
+
+	var login Login
+	decodeForm(w, req, &login)
+	foundUser, found := db.getUsersMap()[login.Email]
+	if !found {
+		respondWithError(w, 404, "user not found")
+		return
+	}
+
+	err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(login.Password))
+	if err != nil {
+		respondWithError(w, 401, "wrong password")
+		return
+	}
+	respondWithJSON(w, 200, foundUser.userToPublic())
 
 }
 
@@ -134,6 +179,32 @@ func decodeForm(w http.ResponseWriter, r *http.Request, dst interface{}) {
 }
 
 type Login struct {
-	Password string `json:"password"`
-	Email    string `json:"email"`
+	Password         string `json:"password"`
+	Email            string `json:"email"`
+	ExpiresInSeconds int    `json:"expires_in_seconds"`
+}
+
+func (u *User) generateClaims() *jwt.RegisteredClaims{
+	// 24h
+	expires := time.Now() + time.Unix(86400)
+	claims := &jwt.RegisteredClaims{
+		Issuer: "Chirpy",
+		IssuedAt: time.Now(),
+		ExpiresAt: jwt.NewNumericDate(expires),
+		Subject: string(u.ID)
+	}
+	if user.ExpiresInSeconds > 0 && user.expires_in_seconds < 86400{
+		claims.ExpiresAt := time.Now() + time.Unix(user.expires_in_seconds)
+	}
+	return claims
+}
+func (u *User) generateToken() {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, u.generateClaims())
+	tokenString, err := token.SignedString(hmacSampleSecret)
+	fmt.Println(tokenString, err)
+}
+type UserTokenResponse struct{
+	ID int `json:"id"`
+	Email string `json:"email"`
+	Token string `json:"token"`
 }

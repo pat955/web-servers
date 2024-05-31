@@ -27,14 +27,19 @@ type Chirp struct {
 }
 
 type User struct {
-	ID       int    `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	ID               int    `json:"id"`
+	Email            string `json:"email"`
+	Password         string `json:"password"`
+	ExpiresInSeconds int    `json:"expires_in_seconds"`
 }
 
 type PublicUser struct {
 	ID    int    `json:"id"`
 	Email string `json:"email"`
+}
+
+func (u *User) userToPublic() PublicUser {
+	return PublicUser{ID: u.ID, Email: u.Email}
 }
 
 func createDB(path string) (*DB, error) {

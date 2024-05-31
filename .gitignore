@@ -2,3 +2,4 @@ out
 /assets
 */database.json
 database.json
+.env

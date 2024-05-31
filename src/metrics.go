@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	"net/http"
+
+	_ "github.com/golang-jwt/jwt/v5"
 )
 
 type apiConfig struct {
 	fileserverHits int
+	JWTSecret      string
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
