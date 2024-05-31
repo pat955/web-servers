@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
@@ -37,18 +37,7 @@ func main() {
 		JWTSecret:      jwtSecret,
 	}
 
-	claims := &jwt.RegisteredClaims{
-		Issuer: "Chirpy",
-		IssuedAt: time.Now(),
-		ExpiresAt: jwt.NewNumericDate(time.Now()+time.Unix(120)),
-		Subject: string(user.id)
-	}
-	
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString(mySigningKey)
-	fmt.Println(ss, err)
 	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims, token.SignedString)
-
 
 	router := mux.NewRouter()
 	defaultHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(root))))
@@ -71,9 +60,8 @@ func main() {
 	srv.ListenAndServe()
 }
 
-func handlerAuth(w http.ResponseWriter, req *http.Request){
-	bearer := req.Header.Get("Bearer")
-	respondWithJSON(w, 200, UserTokenResponse{ID: user.id, })
+func handlerAuth(w http.ResponseWriter, req *http.Request) {
+	return
 }
 
 func handlerLogin(w http.ResponseWriter, req *http.Request) {
@@ -184,27 +172,30 @@ type Login struct {
 	ExpiresInSeconds int    `json:"expires_in_seconds"`
 }
 
-func (u *User) generateClaims() *jwt.RegisteredClaims{
+func (u *User) generateClaims() *jwt.RegisteredClaims {
 	// 24h
-	expires := time.Now() + time.Unix(86400)
+	expires := time.Now().UTC().Add(time.Second * time.Duration(86400))
 	claims := &jwt.RegisteredClaims{
-		Issuer: "Chirpy",
-		IssuedAt: time.Now(),
+		Issuer:    "Chirpy",
+		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 		ExpiresAt: jwt.NewNumericDate(expires),
-		Subject: string(u.ID)
+		Subject:   fmt.Sprint(u.ID),
 	}
-	if user.ExpiresInSeconds > 0 && user.expires_in_seconds < 86400{
-		claims.ExpiresAt := time.Now() + time.Unix(user.expires_in_seconds)
+	if u.ExpiresInSeconds > 0 && u.ExpiresInSeconds < 86400 {
+		claims.ExpiresAt = jwt.NewNumericDate(time.Now().UTC().Add(time.Second * time.Duration(u.ExpiresInSeconds)))
 	}
 	return claims
 }
+
 func (u *User) generateToken() {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, u.generateClaims())
-	tokenString, err := token.SignedString(hmacSampleSecret)
+	jwtSecret := os.Getenv("JWT_SECRET")
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, u.generateClaims())
+	tokenString, err := t.SignedString(jwtSecret)
 	fmt.Println(tokenString, err)
 }
-type UserTokenResponse struct{
-	ID int `json:"id"`
+
+type UserTokenResponse struct {
+	ID    int    `json:"id"`
 	Email string `json:"email"`
 	Token string `json:"token"`
 }
