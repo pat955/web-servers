@@ -33,6 +33,10 @@ type User struct {
 	ExpiresInSeconds int    `json:"expires_in_seconds"`
 }
 
+func (u *User) UserLoginResponse() UserTokenResponse {
+	return UserTokenResponse{ID: u.ID, Email: u.Email, Token: u.generateToken()}
+}
+
 type PublicUser struct {
 	ID    int    `json:"id"`
 	Email string `json:"email"`
@@ -141,6 +145,7 @@ func (db *DB) getUsers() []User {
 	}
 	return allUsers
 }
+
 func (db *DB) getChirpMap() map[int]Chirp {
 	db.mux.RLock()
 	f, err := os.ReadFile(db.Path)

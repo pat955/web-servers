@@ -37,8 +37,6 @@ func main() {
 		JWTSecret:      jwtSecret,
 	}
 
-	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims, token.SignedString)
-
 	router := mux.NewRouter()
 	defaultHandler := apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(root))))
 	router.Handle("/app/*", middlewareLog(defaultHandler))
@@ -61,27 +59,23 @@ func main() {
 }
 
 func handlerAuth(w http.ResponseWriter, req *http.Request) {
-	return
 }
 
 func handlerLogin(w http.ResponseWriter, req *http.Request) {
 	db, _ := createDB(DBPATH)
-
-	var login Login
-	decodeForm(w, req, &login)
-	foundUser, found := db.getUsersMap()[login.Email]
+	var user User
+	decodeForm(w, req, &user)
+	foundUser, found := db.getUsersMap()[user.Email]
 	if !found {
 		respondWithError(w, 404, "user not found")
 		return
 	}
-
-	err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(login.Password))
+	err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(user.Password))
 	if err != nil {
 		respondWithError(w, 401, "wrong password")
 		return
 	}
-	respondWithJSON(w, 200, foundUser.userToPublic())
-
+	respondWithJSON(w, 200, user.UserLoginResponse())
 }
 
 func handlerAddChirp(w http.ResponseWriter, req *http.Request) {
@@ -151,7 +145,7 @@ func handlerAddUser(w http.ResponseWriter, req *http.Request) {
 	}
 	user.ID = USERID
 	db.addUser(user)
-	respondWithJSON(w, 201, PublicUser{ID: user.ID, Email: user.Email})
+	respondWithJSON(w, 201, user.userToPublic())
 }
 
 func censor(s string) string {
@@ -187,11 +181,12 @@ func (u *User) generateClaims() *jwt.RegisteredClaims {
 	return claims
 }
 
-func (u *User) generateToken() {
+func (u *User) generateToken() string {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, u.generateClaims())
-	tokenString, err := t.SignedString(jwtSecret)
-	fmt.Println(tokenString, err)
+	token, err := t.SignedString(jwtSecret)
+	fmt.Println(token, err)
+	return token
 }
 
 type UserTokenResponse struct {
