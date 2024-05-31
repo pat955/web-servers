@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 	"time"
 
 	"net/http"
@@ -20,7 +22,10 @@ import (
 const DBPATH string = "./database.json"
 
 func main() {
-	godotenv.Load("../.env")
+	err := godotenv.Load("../.env")
+	if err != nil {
+		log.Fatalf("err loading: %v", err)
+	}
 	jwtSecret := os.Getenv("JWT_SECRET")
 
 	// debug flag, deletes the db if $ ./out --debug
@@ -59,6 +64,64 @@ func main() {
 }
 
 func handlerAuth(w http.ResponseWriter, req *http.Request) {
+	jwtSecret := os.Getenv("JWT_SECRET")
+	fmt.Println("secret: " + jwtSecret)
+	if jwtSecret == "" {
+		respondWithError(w, 500, "JWT secret not set")
+		return
+	}
+
+	db, _ := createDB(DBPATH)
+	auth := req.Header.Get("Authorization")
+	if auth == "" {
+		respondWithError(w, 401, "Authorization header missing")
+		return
+	}
+
+	tokenString := strings.Split(auth, "Bearer ")
+	if len(tokenString) != 2 {
+		respondWithError(w, 401, "Invalid Authorization header format")
+		return
+	}
+
+	token, err := jwt.ParseWithClaims(tokenString[1], &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(jwtSecret), nil
+	})
+	if err != nil {
+		fmt.Println(err)
+		respondWithError(w, 401, "Unauthorized response")
+		return
+	}
+
+	claims, ok := token.Claims.(*jwt.RegisteredClaims)
+	if !ok || !token.Valid {
+		respondWithError(w, 401, "Invalid token")
+		return
+	}
+
+	id := claims.Subject
+	if id == "" {
+		respondWithError(w, 401, "Token subject is missing")
+		return
+	}
+
+	foundUser, found := db.getUsersMap()[id]
+	if !found {
+		respondWithError(w, 404, "User not found")
+		return
+	}
+
+	var user User
+	decodeForm(w, req, &user)
+
+	foundUser.Email = user.Email
+	foundUser.Password = user.Password
+	db.updateUser(foundUser)
+
+	respondWithJSON(w, 200, foundUser.userToPublic())
 }
 
 func handlerLogin(w http.ResponseWriter, req *http.Request) {
@@ -75,7 +138,7 @@ func handlerLogin(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, 401, "wrong password")
 		return
 	}
-	respondWithJSON(w, 200, user.UserLoginResponse())
+	respondWithJSON(w, 200, foundUser.UserLoginResponse())
 }
 
 func handlerAddChirp(w http.ResponseWriter, req *http.Request) {
@@ -184,8 +247,10 @@ func (u *User) generateClaims() *jwt.RegisteredClaims {
 func (u *User) generateToken() string {
 	jwtSecret := os.Getenv("JWT_SECRET")
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, u.generateClaims())
-	token, err := t.SignedString(jwtSecret)
-	fmt.Println(token, err)
+	token, err := t.SignedString([]byte(jwtSecret))
+	if err != nil {
+		panic(err)
+	}
 	return token
 }
 

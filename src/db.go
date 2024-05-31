@@ -91,6 +91,20 @@ func (db *DB) addUser(user User) {
 	USERID++
 }
 
+func (db *DB) updateUser(user User) {
+	data, err := db.loadDB()
+	if err != nil {
+		panic(err)
+	}
+	passByte, err := bcrypt.GenerateFromPassword([]byte(user.Password), 10)
+	if err != nil {
+		panic(err)
+	}
+	user.Password = string(passByte)
+	data.Users[user.Email] = user
+	db.writeDB(data)
+}
+
 func (db *DB) writeDB(dbstruct DBStructure) {
 	json, err := json.Marshal(dbstruct)
 	if err != nil {
