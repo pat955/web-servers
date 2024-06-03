@@ -108,9 +108,6 @@ func handlerAuth(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, 401, "Token subject is missing")
 		return
 	}
-	users := db.getUsersMap()
-	fmt.Println(users)
-
 	id, err := strconv.Atoi(claims.Subject)
 	if err != nil {
 		panic(err)
@@ -134,8 +131,9 @@ func handlerAuth(w http.ResponseWriter, req *http.Request) {
 func handlerLogin(w http.ResponseWriter, req *http.Request) {
 	db, _ := createDB(DBPATH)
 	var user User
-	var id int
 	decodeForm(w, req, &user)
+
+	var id int
 	for _, u := range db.getUsers() {
 		if u.Email == user.Email {
 			id = u.ID

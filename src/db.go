@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"sync"
 
@@ -81,15 +80,18 @@ func (db *DB) addUser(user User) {
 	if err != nil {
 		panic(err)
 	}
-	passByte, err := bcrypt.GenerateFromPassword([]byte(user.Password), 10)
-	if err != nil {
-		panic(err)
-	}
-	user.Password = string(passByte)
+	user.Password = string(generatePassword(user.Password))
 
 	data.Users[user.ID] = user
 	db.writeDB(data)
 	USERID++
+}
+func generatePassword(pass string) []byte {
+	passByte, err := bcrypt.GenerateFromPassword([]byte(pass), 10)
+	if err != nil {
+		panic(err)
+	}
+	return passByte
 }
 
 func (db *DB) updateUser(user User) {
@@ -97,18 +99,13 @@ func (db *DB) updateUser(user User) {
 	if err != nil {
 		panic(err)
 	}
-	passByte, err := bcrypt.GenerateFromPassword([]byte(user.Password), 10)
-	if err != nil {
-		panic(err)
-	}
-	user.Password = string(passByte)
+	user.Password = string(generatePassword(user.Password))
 	data.Users[user.ID] = user
 	db.writeDB(data)
 }
 
 func (db *DB) writeDB(dbstruct DBStructure) {
 	json, err := json.Marshal(dbstruct)
-	fmt.Println(dbstruct.Users[1])
 	if err != nil {
 		panic(err)
 	}
@@ -174,17 +171,17 @@ func (db *DB) getChirpMap() map[int]Chirp {
 	return data.Chirps
 }
 
-func (db *DB) getUsersMap() map[int]User {
-	db.mux.RLock()
-	f, err := os.ReadFile(db.Path)
-	if err != nil {
-		panic(err)
-	}
-	db.mux.RUnlock()
-	var data DBStructure
-	json.Unmarshal(f, &data)
-	return data.Users
-}
+// func (db *DB) getUsersMap() map[int]User {
+// 	db.mux.RLock()
+// 	f, err := os.ReadFile(db.Path)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	db.mux.RUnlock()
+// 	var data DBStructure
+// 	json.Unmarshal(f, &data)
+// 	return data.Users
+// }
 
 func (db *DB) getUser(id int) (User, bool) {
 	data, err := db.loadDB()
@@ -195,10 +192,5 @@ func (db *DB) getUser(id int) (User, bool) {
 	if !found {
 		return User{}, false
 	}
-	fmt.Println()
-	fmt.Println(data)
-	fmt.Println()
-	fmt.Println()
-	fmt.Println(err, user, found)
 	return user, true
 }
