@@ -5,9 +5,11 @@ import (
 	"net/http"
 
 	_ "github.com/golang-jwt/jwt/v5"
+	"github.com/pat955/chirpy/internal/my_db"
 )
 
 type apiConfig struct {
+	DB             *my_db.DB
 	fileserverHits int
 	JWTSecret      string
 }
