@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"sync"
 
@@ -17,8 +18,8 @@ type DB struct {
 }
 
 type DBStructure struct {
-	Chirps map[int]Chirp   `json:"chirps"`
-	Users  map[string]User `json:"users"`
+	Chirps map[int]Chirp `json:"chirps"`
+	Users  map[int]User  `json:"users"`
 }
 
 type Chirp struct {
@@ -57,7 +58,7 @@ func createDB(path string) (*DB, error) {
 		return nil, err
 	}
 	defer f.Close()
-	db.writeDB(DBStructure{Chirps: make(map[int]Chirp), Users: make(map[string]User)})
+	db.writeDB(DBStructure{Chirps: make(map[int]Chirp), Users: make(map[int]User)})
 	return &db, nil
 }
 
@@ -86,7 +87,7 @@ func (db *DB) addUser(user User) {
 	}
 	user.Password = string(passByte)
 
-	data.Users[user.Email] = user
+	data.Users[user.ID] = user
 	db.writeDB(data)
 	USERID++
 }
@@ -101,12 +102,13 @@ func (db *DB) updateUser(user User) {
 		panic(err)
 	}
 	user.Password = string(passByte)
-	data.Users[user.Email] = user
+	data.Users[user.ID] = user
 	db.writeDB(data)
 }
 
 func (db *DB) writeDB(dbstruct DBStructure) {
 	json, err := json.Marshal(dbstruct)
+	fmt.Println(dbstruct.Users[1])
 	if err != nil {
 		panic(err)
 	}
@@ -172,7 +174,7 @@ func (db *DB) getChirpMap() map[int]Chirp {
 	return data.Chirps
 }
 
-func (db *DB) getUsersMap() map[string]User {
+func (db *DB) getUsersMap() map[int]User {
 	db.mux.RLock()
 	f, err := os.ReadFile(db.Path)
 	if err != nil {
@@ -182,4 +184,21 @@ func (db *DB) getUsersMap() map[string]User {
 	var data DBStructure
 	json.Unmarshal(f, &data)
 	return data.Users
+}
+
+func (db *DB) getUser(id int) (User, bool) {
+	data, err := db.loadDB()
+	if err != nil {
+		panic(err)
+	}
+	user, found := data.Users[id]
+	if !found {
+		return User{}, false
+	}
+	fmt.Println()
+	fmt.Println(data)
+	fmt.Println()
+	fmt.Println()
+	fmt.Println(err, user, found)
+	return user, true
 }

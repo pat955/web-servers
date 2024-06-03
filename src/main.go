@@ -75,7 +75,7 @@ func handlerAuth(w http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 	auth := req.Header.Get("Authorization")
-	if auth == "Bearer: " {
+	if auth == "Bearer: " || auth == "" {
 		respondWithError(w, 401, "Authorization header missing")
 		return
 	}
@@ -109,7 +109,13 @@ func handlerAuth(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	users := db.getUsersMap()
-	foundUser, found := users[email]
+	fmt.Println(users)
+
+	id, err := strconv.Atoi(claims.Subject)
+	if err != nil {
+		panic(err)
+	}
+	foundUser, found := db.getUser(id)
 	if !found {
 		respondWithError(w, 404, "User not found")
 		return
@@ -128,8 +134,18 @@ func handlerAuth(w http.ResponseWriter, req *http.Request) {
 func handlerLogin(w http.ResponseWriter, req *http.Request) {
 	db, _ := createDB(DBPATH)
 	var user User
+	var id int
 	decodeForm(w, req, &user)
-	foundUser, found := db.getUsersMap()[user.Email]
+	for _, u := range db.getUsers() {
+		if u.Email == user.Email {
+			id = u.ID
+		}
+	}
+	if id == 0 {
+		respondWithError(w, 404, "user not found")
+		return
+	}
+	foundUser, found := db.getUser(id)
 	if !found {
 		respondWithError(w, 404, "user not found")
 		return
@@ -185,11 +201,8 @@ func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	chirpMap, err := db.loadDB()
-	if err != nil {
-		panic(err)
-	}
-	chirp, found := chirpMap.Chirps[id]
+
+	chirp, found := db.getChirpMap()[id]
 	if !found {
 		respondWithError(w, 404, "Chirp not found")
 		return
@@ -204,7 +217,7 @@ func handlerAddUser(w http.ResponseWriter, req *http.Request) {
 	}
 	var user User
 	decodeForm(w, req, &user)
-	_, found := db.getUsersMap()[user.Email]
+	_, found := db.getUser(user.ID)
 	if found {
 		respondWithError(w, 409, "user already exists")
 		return
@@ -239,7 +252,7 @@ func (u *User) generateClaims() *jwt.RegisteredClaims {
 		Issuer:    "Chirpy",
 		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 		ExpiresAt: jwt.NewNumericDate(expires),
-		Subject:   u.Email,
+		Subject:   fmt.Sprint(u.ID),
 	}
 	if u.ExpiresInSeconds > 0 && u.ExpiresInSeconds < 86400 {
 		claims.ExpiresAt = jwt.NewNumericDate(time.Now().UTC().Add(time.Second * time.Duration(u.ExpiresInSeconds)))
