@@ -22,6 +22,7 @@ func (db *DB) AddChirp(chirp Chirp) {
 		panic(err)
 	}
 	data.Chirps[chirp.ID] = chirp
+	chirp.Body = Censor(chirp.Body)
 	db.writeDB(data)
 }
 func (db *DB) GetChirps() []Chirp {
@@ -50,4 +51,16 @@ func (db *DB) GetChirpMap() map[int]Chirp {
 	var data DBStructure
 	json.Unmarshal(f, &data)
 	return data.Chirps
+}
+
+func (db *DB) GetChirp(id int) (Chirp, bool) {
+	data, err := db.loadDB()
+	if err != nil {
+		panic(err)
+	}
+	chirp, found := data.Chirps[id]
+	if !found {
+		return Chirp{}, false
+	}
+	return chirp, true
 }

@@ -28,9 +28,7 @@ func handlerAddChirp(w http.ResponseWriter, req *http.Request) {
 }
 
 func handlerGetChirps(w http.ResponseWriter, req *http.Request) {
-	db := my_db.CreateDB(DBPATH)
-
-	respondWithJSON(w, 200, db.GetChirps())
+	respondWithJSON(w, 200, my_db.CreateDB(DBPATH).GetChirps())
 }
 
 func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {
