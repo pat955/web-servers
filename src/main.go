@@ -65,15 +65,17 @@ func main() {
 
 func handlerAuth(w http.ResponseWriter, req *http.Request) {
 	jwtSecret := os.Getenv("JWT_SECRET")
-	fmt.Println("secret: " + jwtSecret)
 	if jwtSecret == "" {
 		respondWithError(w, 500, "JWT secret not set")
 		return
 	}
 
-	db, _ := createDB(DBPATH)
+	db, err := createDB(DBPATH)
+	if err != nil {
+		panic(err)
+	}
 	auth := req.Header.Get("Authorization")
-	if auth == "" {
+	if auth == "Bearer: " {
 		respondWithError(w, 401, "Authorization header missing")
 		return
 	}
@@ -91,8 +93,7 @@ func handlerAuth(w http.ResponseWriter, req *http.Request) {
 		return []byte(jwtSecret), nil
 	})
 	if err != nil {
-		fmt.Println(err)
-		respondWithError(w, 401, "Unauthorized response")
+		respondWithError(w, 401, "Unauthorized response, "+err.Error())
 		return
 	}
 
@@ -102,13 +103,13 @@ func handlerAuth(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	id := claims.Subject
-	if id == "" {
+	email := claims.Subject
+	if email == "" {
 		respondWithError(w, 401, "Token subject is missing")
 		return
 	}
-
-	foundUser, found := db.getUsersMap()[id]
+	users := db.getUsersMap()
+	foundUser, found := users[email]
 	if !found {
 		respondWithError(w, 404, "User not found")
 		return
@@ -133,11 +134,13 @@ func handlerLogin(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, 404, "user not found")
 		return
 	}
+	foundUser.ExpiresInSeconds = user.ExpiresInSeconds
 	err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(user.Password))
 	if err != nil {
 		respondWithError(w, 401, "wrong password")
 		return
 	}
+	db.updateUser(foundUser)
 	respondWithJSON(w, 200, foundUser.UserLoginResponse())
 }
 
@@ -236,7 +239,7 @@ func (u *User) generateClaims() *jwt.RegisteredClaims {
 		Issuer:    "Chirpy",
 		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 		ExpiresAt: jwt.NewNumericDate(expires),
-		Subject:   fmt.Sprint(u.ID),
+		Subject:   u.Email,
 	}
 	if u.ExpiresInSeconds > 0 && u.ExpiresInSeconds < 86400 {
 		claims.ExpiresAt = jwt.NewNumericDate(time.Now().UTC().Add(time.Second * time.Duration(u.ExpiresInSeconds)))
