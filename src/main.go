@@ -46,6 +46,9 @@ func main() {
 	router.HandleFunc("/api/chirps/{chirpID}", handlerAddChirpId).Methods("GET")
 	router.HandleFunc("/api/users", handlerAddUser).Methods("POST")
 	router.HandleFunc("/api/users", handlerAuth).Methods("PUT")
+	router.HandleFunc("/api/refresh", handlerRefresh).Methods("POST")
+	router.HandleFunc("/api/revoke", handlerRevoke).Methods("POST")
+
 	router.HandleFunc("/api/login", handlerLogin).Methods("POST")
 	router.HandleFunc("/api/reset", apiCfg.handlerResetCount)
 	corsMux := middlewareLog(middlewareCors(router))

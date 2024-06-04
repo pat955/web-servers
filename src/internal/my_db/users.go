@@ -1,6 +1,8 @@
 package my_db
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -11,10 +13,12 @@ import (
 )
 
 type User struct {
-	ID               int    `json:"id"`
-	Email            string `json:"email"`
-	Password         string `json:"password"`
-	ExpiresInSeconds int    `json:"expires_in_seconds"`
+	ID            int    `json:"id"`
+	Email         string `json:"email"`
+	Password      string `json:"password"`
+	ExpiresInDays int    `json:"expires_in_days"`
+	AccessToken   string `json:"access_token"`
+	RefreshToken  string `json:"refresh_token"`
 }
 
 type PublicUser struct {
@@ -23,13 +27,14 @@ type PublicUser struct {
 }
 
 type UserTokenResponse struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
-	Token string `json:"token"`
+	ID           int    `json:"id"`
+	Email        string `json:"email"`
+	Token        string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 func (u *User) UserLoginResponse() UserTokenResponse {
-	return UserTokenResponse{ID: u.ID, Email: u.Email, Token: u.GenerateToken()}
+	return UserTokenResponse{ID: u.ID, Email: u.Email, Token: u.AccessToken, RefreshToken: u.RefreshToken}
 }
 
 func (u *User) UserToPublic() PublicUser {
@@ -37,17 +42,17 @@ func (u *User) UserToPublic() PublicUser {
 }
 
 func (u *User) GenerateClaims() *jwt.RegisteredClaims {
-	// 24h
-	expires := time.Now().UTC().Add(time.Second * time.Duration(86400))
+	// 1h
+	expires := time.Now().UTC().Add(time.Second * time.Duration(3600))
 	claims := &jwt.RegisteredClaims{
 		Issuer:    "Chirpy",
 		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
 		ExpiresAt: jwt.NewNumericDate(expires),
 		Subject:   fmt.Sprint(u.ID),
 	}
-	if u.ExpiresInSeconds > 0 && u.ExpiresInSeconds < 86400 {
-		claims.ExpiresAt = jwt.NewNumericDate(time.Now().UTC().Add(time.Second * time.Duration(u.ExpiresInSeconds)))
-	}
+	// if u.ExpiresInSeconds > 0 && u.ExpiresInSeconds < 86400 {
+	// 	claims.ExpiresAt = jwt.NewNumericDate(time.Now().UTC().Add(time.Second * time.Duration(u.ExpiresInSeconds)))
+	// }
 	return claims
 }
 
@@ -59,6 +64,17 @@ func (u *User) GenerateToken() string {
 		panic(err)
 	}
 	return token
+}
+
+func (u *User) GenerateRefreshToken() string {
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	if err != nil {
+		fmt.Println("error:", err)
+		return ""
+	}
+	fmt.Println(len(b), hex.EncodeToString(b))
+	return hex.EncodeToString(b)
 }
 
 func GeneratePassword(pass string) []byte {
@@ -75,6 +91,9 @@ func (db *DB) AddUser(user User) {
 		panic(err)
 	}
 	user.Password = string(GeneratePassword(user.Password))
+	user.RefreshToken = user.GenerateRefreshToken()
+	user.ExpiresInDays = 60
+	user.AccessToken = user.GenerateToken()
 
 	data.Users[user.ID] = user
 	db.writeDB(data)
@@ -111,18 +130,6 @@ func (db *DB) GetUsers() []User {
 		allUsers = append(allUsers, user)
 	}
 	return allUsers
-}
-
-func (db *DB) GetUsersMap() map[int]User {
-	db.mux.RLock()
-	f, err := os.ReadFile(db.Path)
-	if err != nil {
-		panic(err)
-	}
-	db.mux.RUnlock()
-	var data DBStructure
-	json.Unmarshal(f, &data)
-	return data.Users
 }
 
 func (db *DB) GetUser(id int) (User, bool) {

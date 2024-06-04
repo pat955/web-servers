@@ -83,7 +83,7 @@ func handlerLogin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	foundUser.ExpiresInSeconds = user.ExpiresInSeconds
+	foundUser.ExpiresInDays = user.ExpiresInDays
 	err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(user.Password))
 	if err != nil {
 		respondWithError(w, 401, "wrong password")
