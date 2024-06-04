@@ -55,34 +55,6 @@ func (u *User) GenerateClaims() *jwt.RegisteredClaims {
 	return claims
 }
 
-func (u *User) GenerateToken() string {
-	jwtSecret := os.Getenv("JWT_SECRET")
-	t := jwt.NewWithClaims(jwt.SigningMethodHS256, u.GenerateClaims())
-	token, err := t.SignedString([]byte(jwtSecret))
-	if err != nil {
-		panic(err)
-	}
-	return token
-}
-
-func (u *User) GenerateRefreshToken() string {
-	b := make([]byte, 32)
-	_, err := rand.Read(b)
-	if err != nil {
-		fmt.Println("error:", err)
-		return ""
-	}
-	return hex.EncodeToString(b)
-}
-
-func GeneratePassword(pass string) []byte {
-	passByte, err := bcrypt.GenerateFromPassword([]byte(pass), 10)
-	if err != nil {
-		panic(err)
-	}
-	return passByte
-}
-
 func (db *DB) AddUser(user User) {
 	data, err := db.loadDB()
 	if err != nil {
@@ -140,4 +112,37 @@ func (db *DB) GetUser(id int) (User, bool) {
 		return User{}, false
 	}
 	return user, true
+}
+
+// -------------------------------------------------
+
+func (u *User) GenerateToken() string {
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		panic("jwt not set!!!")
+	}
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, u.GenerateClaims())
+	token, err := t.SignedString([]byte(jwtSecret))
+	if err != nil {
+		panic(err)
+	}
+	return token
+}
+
+func (u *User) GenerateRefreshToken() string {
+	b := make([]byte, 32)
+	_, err := rand.Read(b)
+	if err != nil {
+		fmt.Println("error:", err)
+		return ""
+	}
+	return hex.EncodeToString(b)
+}
+
+func GeneratePassword(pass string) []byte {
+	passByte, err := bcrypt.GenerateFromPassword([]byte(pass), 10)
+	if err != nil {
+		panic(err)
+	}
+	return passByte
 }

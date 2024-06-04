@@ -1,13 +1,16 @@
 package my_db
 
-import "fmt"
+import (
+	"fmt"
+)
 
-func (db *DB) GetRefreshToken(token string) TokenInfo {
+func (db *DB) GetRefreshToken(token string) (TokenInfo, bool) {
 	data, err := db.loadDB()
 	if err != nil {
 		panic(err)
 	}
-	return data.RefreshTokens[token]
+	f, ok := data.RefreshTokens[token]
+	return f, ok
 }
 
 func (db *DB) Revoke(token string) error {

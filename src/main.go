@@ -9,6 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"github.com/pat955/chirpy/internal/auth"
 	"github.com/pat955/chirpy/internal/my_db"
 )
 
@@ -18,6 +19,10 @@ func main() {
 	err := godotenv.Load("../.env")
 	if err != nil {
 		log.Fatalf("err loading: %v", err)
+	}
+
+	if err := auth.JWTNotSetCheck(); err != nil {
+		panic(err)
 	}
 	jwtSecret := os.Getenv("JWT_SECRET")
 

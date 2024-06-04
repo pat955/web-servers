@@ -1,8 +1,10 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -14,6 +16,12 @@ type Login struct {
 	ExpiresInSeconds int    `json:"expires_in_seconds"`
 }
 
+func JWTNotSetCheck() error {
+	if jwtSecret := os.Getenv("JWT_SECRET"); jwtSecret == "" {
+		return errors.New("jwt not set")
+	}
+	return nil
+}
 func GetAuthFromRequest(req *http.Request) (int, string) {
 	auth := req.Header.Get("Authorization")
 	if auth == "Bearer: " || auth == "" {
