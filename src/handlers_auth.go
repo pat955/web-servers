@@ -111,7 +111,7 @@ func handlerRevoke(w http.ResponseWriter, req *http.Request) {
 	db := my_db.CreateDB(DBPATH)
 	db.Revoke(tokenString)
 
-	respondWithJSON(w, 204, nil)
+	respondWithError(w, 204, "")
 }
 
 type RefreshResponse struct {

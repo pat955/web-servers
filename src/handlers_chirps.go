@@ -35,6 +35,7 @@ func handlerAddChirp(w http.ResponseWriter, req *http.Request) {
 	authorID, err := getAuthorId(req)
 	if err != nil {
 		respondWithError(w, 401, err.Error())
+		return
 	}
 	db := my_db.CreateDB(DBPATH)
 
@@ -86,12 +87,14 @@ func handlerDeleteChirp(w http.ResponseWriter, req *http.Request) {
 	authorID, err := getAuthorId(req)
 	if err != nil {
 		respondWithError(w, 403, "No authorization")
+		return
 	}
 	db := my_db.CreateDB(DBPATH)
 	if err := db.DeleteChirp(strconvInt(chirpID), authorID); err != nil {
 		respondWithError(w, 403, err.Error())
+		return
 	}
-	respondWithJSON(w, 204, "")
+	respondWithJSON(w, 204, nil)
 }
 
 func strconvInt(s string) int {
