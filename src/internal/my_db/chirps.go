@@ -7,8 +7,9 @@ import (
 )
 
 type Chirp struct {
-	ID   int    `json:"id"`
-	Body string `json:"body"`
+	ID       int    `json:"id"`
+	AuthorID int    `json:"author_id"`
+	Body     string `json:"body"`
 }
 
 func Censor(s string) string {
