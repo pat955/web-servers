@@ -2,7 +2,7 @@ package main
 
 import (
 	"net/http"
-	"os"
+	"time"
 
 	"github.com/pat955/chirpy/internal/auth"
 	"github.com/pat955/chirpy/internal/my_db"
@@ -27,26 +27,26 @@ func handlerAddUser(w http.ResponseWriter, req *http.Request) {
 }
 
 func handlerRefresh(w http.ResponseWriter, req *http.Request) {
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		respondWithError(w, 500, "JWT secret not set")
-		return
+	status, refreshToken := auth.GetAuthFromRequest(req)
+	if status > 204 {
+		respondWithError(w, 204, refreshToken)
 	}
 	db := my_db.CreateDB(DBPATH)
-
-	status, tokenString := auth.GetAuthFromRequest(req)
-	if status > 201 {
-		respondWithError(w, status, tokenString)
+	token := db.GetRefreshToken(refreshToken)
+	if time.Now().Compare(token.ExpiresUTC) == 1 || token.UserID == 0 {
+		respondWithError(w, 401, "Expired refresh token, or non existant token")
 		return
 	}
-	data := db.GetUsers()
-	for _, u := range data {
-		if u.AccessToken == tokenString {
-			respondWithJSON(w, 201, RefreshResponse{Token: u.AccessToken})
-			return
-		}
-	}
-	respondWithError(w, 404, "access token not found")
+	u, _ := db.GetUser(token.UserID)
+	respondWithJSON(w, 200, RefreshResponse{Token: u.GenerateToken()})
+
+	// or if it's expired, respond with a 401 status code. Otherwise, respond with a 200 code and this shape:
+
+	//	{
+	//	    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+	//	}
+	//
+	// The token field should be a newly created access token that expires in 1 hour.
 }
 
 func handlerRevoke(w http.ResponseWriter, req *http.Request) {

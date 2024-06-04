@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 )
 
 type DB struct {
@@ -12,15 +13,15 @@ type DB struct {
 	mux  *sync.RWMutex
 }
 
-type RefreshTokenInfo struct {
-	UserID        int `json:"user_id"`
-	ExpiresInDays int `json:"expires_in_days"`
+type TokenInfo struct {
+	UserID     int       `json:"user_id"`
+	ExpiresUTC time.Time `json:"expires_utc"`
 }
 
 type DBStructure struct {
-	Chirps       map[int]Chirp               `json:"chirps"`
-	Users        map[int]User                `json:"users"`
-	RefreshToken map[string]RefreshTokenInfo `json:"refresh_token"`
+	Chirps        map[int]Chirp        `json:"chirps"`
+	Users         map[int]User         `json:"users"`
+	RefreshTokens map[string]TokenInfo `json:"refresh_tokens"`
 }
 
 func CreateDB(path string) *DB {
@@ -32,7 +33,7 @@ func CreateDB(path string) *DB {
 	f, _ := os.Create(path)
 
 	defer f.Close()
-	db.writeDB(DBStructure{Chirps: make(map[int]Chirp), Users: make(map[int]User), RefreshToken: make(map[string]RefreshTokenInfo)})
+	db.writeDB(DBStructure{Chirps: make(map[int]Chirp), Users: make(map[int]User), RefreshTokens: make(map[string]TokenInfo)})
 	return &db
 }
 
@@ -40,6 +41,7 @@ func DeleteDB(path string) {
 	os.Remove(path)
 }
 
+// doubles as delete
 func (db *DB) writeDB(dbstruct DBStructure) {
 	json, err := json.Marshal(dbstruct)
 	if err != nil {

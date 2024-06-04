@@ -92,7 +92,7 @@ func (db *DB) AddUser(user User) {
 	user.RefreshToken = user.GenerateRefreshToken()
 	user.AccessToken = user.GenerateToken()
 
-	data.RefreshToken[user.RefreshToken] = RefreshTokenInfo{UserID: user.ID, ExpiresInDays: 60}
+	data.RefreshTokens[user.RefreshToken] = TokenInfo{UserID: user.ID, ExpiresUTC: time.Now().UTC().Add(time.Hour * time.Duration(1440))}
 	data.Users[user.ID] = user
 	db.writeDB(data)
 }
