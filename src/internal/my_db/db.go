@@ -58,8 +58,8 @@ func (db *DB) loadDB() DBStructure {
 }
 
 // decodes json into your provided struct. Using this to avoid making a massive all encompassing struct
-func DecodeForm(r *http.Request, dst interface{}) {
-	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+func DecodeForm(req *http.Request, dst interface{}) {
+	if err := json.NewDecoder(req.Body).Decode(dst); err != nil {
 		panic(err)
 	}
 }

@@ -53,6 +53,8 @@ func main() {
 	router.HandleFunc("/api/revoke", handlerRevoke).Methods("POST")
 	router.HandleFunc("/api/login", handlerLogin).Methods("POST")
 	router.HandleFunc("/api/reset", apiCfg.handlerResetCount)
+
+	router.HandleFunc("/api/polka/webhooks", handlerUpgraded).Methods("POST")
 	corsMux := middlewareLog(middlewareCors(router))
 
 	srv := &http.Server{

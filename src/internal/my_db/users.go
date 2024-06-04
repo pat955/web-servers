@@ -17,15 +17,17 @@ type User struct {
 	Password     string `json:"password"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
+	IsChirpyRed  bool   `json:"is_chirpy_red"`
 }
 
 type PublicUser struct {
-	ID    int    `json:"id"`
-	Email string `json:"email"`
+	ID          int    `json:"id"`
+	Email       string `json:"email"`
+	IsChirpyRed bool   `json:"is_chirpy_red"`
 }
 
 func (u *User) UserToPublic() PublicUser {
-	return PublicUser{ID: u.ID, Email: u.Email}
+	return PublicUser{ID: u.ID, Email: u.Email, IsChirpyRed: u.IsChirpyRed}
 }
 
 type UserTokenResponse struct {
@@ -33,10 +35,16 @@ type UserTokenResponse struct {
 	Email        string `json:"email"`
 	Token        string `json:"token"`
 	RefreshToken string `json:"refresh_token"`
+	IsChirpyRed  bool   `json:"is_chirpy_red"`
 }
 
 func (u *User) UserLoginResponse() UserTokenResponse {
-	return UserTokenResponse{ID: u.ID, Email: u.Email, Token: u.AccessToken, RefreshToken: u.RefreshToken}
+	return UserTokenResponse{
+		ID:           u.ID,
+		Email:        u.Email,
+		Token:        u.AccessToken,
+		RefreshToken: u.RefreshToken,
+		IsChirpyRed:  u.IsChirpyRed}
 }
 
 // Generates jwt claims with 1 hour expiration. Subject is the users id.
