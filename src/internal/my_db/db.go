@@ -5,17 +5,11 @@ import (
 	"net/http"
 	"os"
 	"sync"
-	"time"
 )
 
 type DB struct {
 	Path string
 	mux  *sync.RWMutex
-}
-
-type TokenInfo struct {
-	UserID     int       `json:"user_id"`
-	ExpiresUTC time.Time `json:"expires_utc"`
 }
 
 type DBStructure struct {
@@ -41,7 +35,6 @@ func DeleteDB(path string) {
 	os.Remove(path)
 }
 
-// doubles as delete
 func (db *DB) writeDB(dbstruct DBStructure) {
 	json, err := json.Marshal(dbstruct)
 	if err != nil {
@@ -52,7 +45,7 @@ func (db *DB) writeDB(dbstruct DBStructure) {
 	db.mux.Unlock()
 }
 
-func (db *DB) loadDB() (DBStructure, error) {
+func (db *DB) loadDB() DBStructure {
 	db.mux.RLock()
 	f, err := os.ReadFile(db.Path)
 	if err != nil {
@@ -61,8 +54,7 @@ func (db *DB) loadDB() (DBStructure, error) {
 	db.mux.RUnlock()
 	var dbStruct DBStructure
 	json.Unmarshal(f, &dbStruct)
-
-	return dbStruct, nil
+	return dbStruct
 }
 
 // decodes json into your provided struct. Using this to avoid making a massive all encompassing struct

@@ -3,7 +3,6 @@ package my_db
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -25,6 +24,10 @@ type PublicUser struct {
 	Email string `json:"email"`
 }
 
+func (u *User) UserToPublic() PublicUser {
+	return PublicUser{ID: u.ID, Email: u.Email}
+}
+
 type UserTokenResponse struct {
 	ID           int    `json:"id"`
 	Email        string `json:"email"`
@@ -36,44 +39,34 @@ func (u *User) UserLoginResponse() UserTokenResponse {
 	return UserTokenResponse{ID: u.ID, Email: u.Email, Token: u.AccessToken, RefreshToken: u.RefreshToken}
 }
 
-func (u *User) UserToPublic() PublicUser {
-	return PublicUser{ID: u.ID, Email: u.Email}
-}
-
+// Generates jwt claims with 1 hour expiration. Subject is the users id.
 func (u *User) GenerateClaims() *jwt.RegisteredClaims {
-	// 1h
-	expires := time.Now().UTC().Add(time.Second * time.Duration(3600))
-	claims := &jwt.RegisteredClaims{
+	return &jwt.RegisteredClaims{
 		Issuer:    "Chirpy",
 		IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
-		ExpiresAt: jwt.NewNumericDate(expires),
+		ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(time.Second * time.Duration(3600))),
 		Subject:   fmt.Sprint(u.ID),
 	}
-	// if u.ExpiresInSeconds > 0 && u.ExpiresInSeconds < 86400 {
-	// 	claims.ExpiresAt = jwt.NewNumericDate(time.Now().UTC().Add(time.Second * time.Duration(u.ExpiresInSeconds)))
-	// }
-	return claims
 }
 
+// Adds new user and refresh token to db
 func (db *DB) AddUser(user User) {
-	data, err := db.loadDB()
-	if err != nil {
-		panic(err)
-	}
+	data := db.loadDB()
 	user.Password = string(GeneratePassword(user.Password))
 	user.RefreshToken = user.GenerateRefreshToken()
 	user.AccessToken = user.GenerateToken()
 
-	data.RefreshTokens[user.RefreshToken] = TokenInfo{UserID: user.ID, ExpiresUTC: time.Now().UTC().Add(time.Hour * time.Duration(1440))}
+	data.RefreshTokens[user.RefreshToken] = TokenInfo{
+		UserID:     user.ID,
+		ExpiresUTC: time.Now().UTC().Add(time.Hour * time.Duration(1440)),
+	}
 	data.Users[user.ID] = user
 	db.writeDB(data)
 }
 
+// checks if password is already encrypted
 func (db *DB) UpdateUser(user User) {
-	data, err := db.loadDB()
-	if err != nil {
-		panic(err)
-	}
+	data := db.loadDB()
 	foundUser := data.Users[user.ID]
 
 	if user.Password == foundUser.Password {
@@ -86,15 +79,9 @@ func (db *DB) UpdateUser(user User) {
 	db.writeDB(data)
 }
 
+// use GetUser when you can for preformance
 func (db *DB) GetUsers() []User {
-	db.mux.RLock()
-	f, err := os.ReadFile(db.Path)
-	if err != nil {
-		panic(err)
-	}
-	db.mux.RUnlock()
-	var data DBStructure
-	json.Unmarshal(f, &data)
+	data := db.loadDB()
 	var allUsers []User
 	for _, user := range data.Users {
 		allUsers = append(allUsers, user)
@@ -103,10 +90,8 @@ func (db *DB) GetUsers() []User {
 }
 
 func (db *DB) GetUser(id int) (User, bool) {
-	data, err := db.loadDB()
-	if err != nil {
-		panic(err)
-	}
+	data := db.loadDB()
+
 	user, found := data.Users[id]
 	if !found {
 		return User{}, false
@@ -118,9 +103,7 @@ func (db *DB) GetUser(id int) (User, bool) {
 
 func (u *User) GenerateToken() string {
 	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		panic("jwt not set!!!")
-	}
+
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256, u.GenerateClaims())
 	token, err := t.SignedString([]byte(jwtSecret))
 	if err != nil {

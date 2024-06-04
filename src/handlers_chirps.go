@@ -14,9 +14,6 @@ import (
 var CHIRPID int = 1
 
 func getAuthorId(req *http.Request) (int, error) {
-	if err := auth.JWTNotSetCheck(); err != nil {
-		return -1, err
-	}
 	jwtSecret := os.Getenv("JWT_SECRET")
 	status, token := auth.GetAuthFromRequest(req)
 	if status > 201 {
@@ -43,7 +40,6 @@ func handlerAddChirp(w http.ResponseWriter, req *http.Request) {
 
 	var chirp my_db.Chirp
 	my_db.DecodeForm(req, &chirp)
-	chirp.Body = my_db.Censor(chirp.Body)
 
 	if len(chirp.Body) > 140 {
 		respondWithError(w, 400, "Chirp is too long")
@@ -73,7 +69,7 @@ func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {
 	}
 	db := my_db.CreateDB(DBPATH)
 
-	chirp, found := db.GetChirpMap()[id]
+	chirp, found := db.GetChirp(id)
 	if !found {
 		respondWithError(w, 404, "Chirp not found")
 		return

@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -13,10 +12,6 @@ import (
 )
 
 func handlerAuth(w http.ResponseWriter, req *http.Request) {
-	if err := auth.JWTNotSetCheck(); err != nil {
-		respondWithError(w, 500, err.Error())
-	}
-
 	jwtSecret := os.Getenv("JWT_SECRET")
 	db := my_db.CreateDB(DBPATH)
 
@@ -42,10 +37,7 @@ func handlerAuth(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, 401, "Token subject is missing")
 		return
 	}
-	id, err := strconv.Atoi(claims.Subject)
-	if err != nil {
-		panic(err)
-	}
+	id := strconvInt(claims.Subject)
 	foundUser, found := db.GetUser(id)
 	if !found {
 		respondWithError(w, 404, "User not found")
@@ -118,6 +110,7 @@ func handlerRevoke(w http.ResponseWriter, req *http.Request) {
 	}
 	db := my_db.CreateDB(DBPATH)
 	db.Revoke(tokenString)
+
 	respondWithJSON(w, 204, nil)
 }
 
