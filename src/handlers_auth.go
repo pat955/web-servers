@@ -100,6 +100,7 @@ func handlerRefresh(w http.ResponseWriter, req *http.Request) {
 	token, found := db.GetRefreshToken(refreshToken)
 	if !found {
 		respondWithError(w, 401, "token not found")
+		return
 	}
 	if time.Now().Compare(token.ExpiresUTC) == 1 {
 		respondWithError(w, 401, "Expired refresh token")
@@ -117,7 +118,6 @@ func handlerRevoke(w http.ResponseWriter, req *http.Request) {
 	}
 	db := my_db.CreateDB(DBPATH)
 	db.Revoke(tokenString)
-
 	respondWithJSON(w, 204, nil)
 }
 
