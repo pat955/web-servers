@@ -85,7 +85,14 @@ func (db *DB) UpdateUser(user User) {
 	if err != nil {
 		panic(err)
 	}
-	user.Password = string(GeneratePassword(user.Password))
+	foundUser := data.Users[user.ID]
+
+	if user.Password == foundUser.Password {
+	} else if err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(user.Password)); err == nil {
+		user.Password = foundUser.Password
+	} else {
+		user.Password = string(GeneratePassword(user.Password))
+	}
 	data.Users[user.ID] = user
 	db.writeDB(data)
 }

@@ -82,6 +82,7 @@ func handlerLogin(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, 404, "user not found")
 		return
 	}
+
 	foundUser.ExpiresInSeconds = user.ExpiresInSeconds
 	err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(user.Password))
 	if err != nil {
