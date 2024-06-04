@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"log"
+	"fmt"
 	"os"
 
 	"net/http"
@@ -15,16 +15,14 @@ import (
 const DBPATH string = "./database.json"
 
 func main() {
-	err := godotenv.Load("../.env")
-	if err != nil {
-		log.Fatalf("err loading: %v", err)
+	if err := godotenv.Load("../.env"); err != nil {
+		panic(fmt.Sprintf("err loading: %v", err))
 	}
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		panic("JWT SECRET NOT SET")
 	}
-
 	// debug flag, deletes the db if $ ./out --debug
 	dbg := flag.Bool("debug", false, "Enable debug mode")
 	flag.Parse()
@@ -49,12 +47,10 @@ func main() {
 	router.HandleFunc("/api/chirps", handlerGetChirps).Methods("GET")
 	router.HandleFunc("/api/chirps/{chirpID}", handlerAddChirpId).Methods("GET")
 	router.HandleFunc("/api/chirps/{chirpID}", handlerDeleteChirp).Methods("DELETE")
-
 	router.HandleFunc("/api/users", handlerAddUser).Methods("POST")
 	router.HandleFunc("/api/users", handlerAuth).Methods("PUT")
 	router.HandleFunc("/api/refresh", handlerRefresh).Methods("POST")
 	router.HandleFunc("/api/revoke", handlerRevoke).Methods("POST")
-
 	router.HandleFunc("/api/login", handlerLogin).Methods("POST")
 	router.HandleFunc("/api/reset", apiCfg.handlerResetCount)
 	corsMux := middlewareLog(middlewareCors(router))
@@ -65,5 +61,3 @@ func main() {
 	}
 	srv.ListenAndServe()
 }
-
-// decodes json into your provided struct. Using this to avoid making a massive all encompassing struct
