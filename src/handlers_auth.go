@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"strconv"
@@ -66,7 +67,7 @@ func handlerLogin(w http.ResponseWriter, req *http.Request) {
 
 	var user my_db.User
 	my_db.DecodeForm(req, &user)
-
+	fmt.Println(user)
 	var id int
 	for _, u := range db.GetUsers() {
 		if u.Email == user.Email {
@@ -82,8 +83,8 @@ func handlerLogin(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, 404, "user not found")
 		return
 	}
+	fmt.Println(foundUser)
 
-	foundUser.ExpiresInDays = user.ExpiresInDays
 	err := bcrypt.CompareHashAndPassword([]byte(foundUser.Password), []byte(user.Password))
 	if err != nil {
 		respondWithError(w, 401, "wrong password")

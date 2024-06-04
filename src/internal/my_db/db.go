@@ -12,9 +12,15 @@ type DB struct {
 	mux  *sync.RWMutex
 }
 
+type RefreshTokenInfo struct {
+	UserID        int `json:"user_id"`
+	ExpiresInDays int `json:"expires_in_days"`
+}
+
 type DBStructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
-	Users  map[int]User  `json:"users"`
+	Chirps       map[int]Chirp               `json:"chirps"`
+	Users        map[int]User                `json:"users"`
+	RefreshToken map[string]RefreshTokenInfo `json:"refresh_token"`
 }
 
 func CreateDB(path string) *DB {
@@ -26,7 +32,7 @@ func CreateDB(path string) *DB {
 	f, _ := os.Create(path)
 
 	defer f.Close()
-	db.writeDB(DBStructure{Chirps: make(map[int]Chirp), Users: make(map[int]User)})
+	db.writeDB(DBStructure{Chirps: make(map[int]Chirp), Users: make(map[int]User), RefreshToken: make(map[string]RefreshTokenInfo)})
 	return &db
 }
 

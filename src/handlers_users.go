@@ -49,8 +49,16 @@ func handlerRefresh(w http.ResponseWriter, req *http.Request) {
 	respondWithError(w, 404, "access token not found")
 }
 
-func handlerRevoke() {
+func handlerRevoke(w http.ResponseWriter, req *http.Request) {
+	status, tokenString := auth.GetAuthFromRequest(req)
+	if status > 204 {
+		respondWithError(w, status, tokenString)
+		return
+	}
+	db := my_db.CreateDB(DBPATH)
+	db.Revoke(tokenString)
 
+	respondWithJSON(w, 204, nil)
 }
 
 type RefreshResponse struct {

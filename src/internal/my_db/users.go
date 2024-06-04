@@ -13,12 +13,11 @@ import (
 )
 
 type User struct {
-	ID            int    `json:"id"`
-	Email         string `json:"email"`
-	Password      string `json:"password"`
-	ExpiresInDays int    `json:"expires_in_days"`
-	AccessToken   string `json:"access_token"`
-	RefreshToken  string `json:"refresh_token"`
+	ID           int    `json:"id"`
+	Email        string `json:"email"`
+	Password     string `json:"password"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type PublicUser struct {
@@ -73,7 +72,6 @@ func (u *User) GenerateRefreshToken() string {
 		fmt.Println("error:", err)
 		return ""
 	}
-	fmt.Println(len(b), hex.EncodeToString(b))
 	return hex.EncodeToString(b)
 }
 
@@ -92,9 +90,9 @@ func (db *DB) AddUser(user User) {
 	}
 	user.Password = string(GeneratePassword(user.Password))
 	user.RefreshToken = user.GenerateRefreshToken()
-	user.ExpiresInDays = 60
 	user.AccessToken = user.GenerateToken()
 
+	data.RefreshToken[user.RefreshToken] = RefreshTokenInfo{UserID: user.ID, ExpiresInDays: 60}
 	data.Users[user.ID] = user
 	db.writeDB(data)
 }
