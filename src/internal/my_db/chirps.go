@@ -2,6 +2,7 @@ package my_db
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"regexp"
 )
@@ -64,4 +65,16 @@ func (db *DB) GetChirp(id int) (Chirp, bool) {
 		return Chirp{}, false
 	}
 	return chirp, true
+}
+
+func (db *DB) DeleteChirp(chirpID, authorID int) error {
+	data, err := db.loadDB()
+	if err != nil {
+		panic(err)
+	}
+	if data.Chirps[chirpID].AuthorID == authorID {
+		delete(data.Chirps, data.Chirps[chirpID].ID)
+		return nil
+	}
+	return errors.New("cannot delete chirp not writen by you!")
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"strconv"
@@ -12,33 +13,31 @@ import (
 
 var CHIRPID int = 1
 
-func handlerAddChirp(w http.ResponseWriter, req *http.Request) {
-	if auth.JWTNotSetCheck() != nil {
-		respondWithError(w, 500, "jwt not set")
-		return
+func getAuthorId(req *http.Request) (int, error) {
+	if err := auth.JWTNotSetCheck(); err != nil {
+		return -1, err
 	}
 	jwtSecret := os.Getenv("JWT_SECRET")
 	status, token := auth.GetAuthFromRequest(req)
 	if status > 201 {
-		respondWithError(w, status, token)
-		return
+		return -1, errors.New(token)
 	}
 
 	jwt, err := auth.GetToken(token, jwtSecret)
 	if err != nil {
-		respondWithError(w, 401, err.Error())
-		return
+		return -1, err
 	}
-
 	id, err := jwt.Claims.GetSubject()
 	if err != nil {
-		respondWithError(w, 401, err.Error())
-		return
+		return -1, err
 	}
-	authorID, err := strconv.Atoi(id)
+	return strconvInt(id), nil
+}
+
+func handlerAddChirp(w http.ResponseWriter, req *http.Request) {
+	authorID, err := getAuthorId(req)
 	if err != nil {
-		respondWithError(w, 500, err.Error())
-		return
+		respondWithError(w, 401, err.Error())
 	}
 	db := my_db.CreateDB(DBPATH)
 
@@ -80,4 +79,26 @@ func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	respondWithJSON(w, 200, chirp)
+}
+
+func handlerDeleteChirp(w http.ResponseWriter, req *http.Request) {
+	chirpID, ok := mux.Vars(req)["chirpID"]
+	if !ok {
+		respondWithError(w, 400, "id is missing in parameters")
+		return
+	}
+	authorID, err := getAuthorId(req)
+	if err != nil {
+		respondWithError(w, 403, "No authorization")
+	}
+	db := my_db.CreateDB(DBPATH)
+	if err := db.DeleteChirp(strconvInt(chirpID), authorID); err != nil {
+		respondWithError(w, 403, err.Error())
+	}
+	respondWithJSON(w, 204, "")
+}
+
+func strconvInt(s string) int {
+	i, _ := strconv.Atoi(s)
+	return i
 }

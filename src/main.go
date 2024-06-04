@@ -49,6 +49,8 @@ func main() {
 	router.HandleFunc("/api/chirps", handlerAddChirp).Methods("POST")
 	router.HandleFunc("/api/chirps", handlerGetChirps).Methods("GET")
 	router.HandleFunc("/api/chirps/{chirpID}", handlerAddChirpId).Methods("GET")
+	router.HandleFunc("/api/chirps/{chirpID}", handlerDeleteChirp).Methods("DELETE")
+
 	router.HandleFunc("/api/users", handlerAddUser).Methods("POST")
 	router.HandleFunc("/api/users", handlerAuth).Methods("PUT")
 	router.HandleFunc("/api/refresh", handlerRefresh).Methods("POST")
