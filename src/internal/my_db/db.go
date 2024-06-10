@@ -2,6 +2,7 @@ package my_db
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"sync"
@@ -58,8 +59,9 @@ func (db *DB) loadDB() DBStructure {
 }
 
 // decodes json into your provided struct. Using this to avoid making a massive all encompassing struct
-func DecodeForm(r *http.Request, dst interface{}) {
-	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
-		panic(err)
+// remember &dst, if you get json: Unmarshal(non-pointer) error
+func DecodeForm(req *http.Request, dst interface{}) {
+	if err := json.NewDecoder(req.Body).Decode(dst); err != nil {
+		fmt.Println("ERRRORORORORORO:", err)
 	}
 }
