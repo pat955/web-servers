@@ -54,7 +54,20 @@ func handlerAddChirp(w http.ResponseWriter, req *http.Request) {
 }
 
 func handlerGetChirps(w http.ResponseWriter, req *http.Request) {
-	respondWithJSON(w, 200, my_db.CreateDB(DBPATH).GetChirps())
+	db := my_db.CreateDB(DBPATH)
+	id := req.URL.Query().Get("author_id")
+	sort := req.URL.Query().Get("sort")
+	var chirps []my_db.Chirp
+	if id != "" {
+		chirps = db.GetChirpsByUser(strconvInt(id))
+	}
+	if chirps == nil {
+		chirps = my_db.CreateDB(DBPATH).GetChirps()
+	}
+	if sort != "" {
+		my_db.SortChirps(sort, chirps)
+	}
+	respondWithJSON(w, 200, chirps)
 }
 
 func handlerAddChirpId(w http.ResponseWriter, req *http.Request) {

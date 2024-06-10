@@ -3,6 +3,7 @@ package my_db
 import (
 	"errors"
 	"regexp"
+	"slices"
 )
 
 type Chirp struct {
@@ -35,6 +36,25 @@ func (db *DB) GetChirp(id int) (Chirp, bool) {
 		return Chirp{}, false
 	}
 	return chirp, true
+}
+
+func (db *DB) GetChirpsByUser(userID int) []Chirp {
+	chirps := make([]Chirp, 0)
+	for _, chirp := range db.GetChirps() {
+		if chirp.AuthorID == userID {
+			chirps = append(chirps, chirp)
+		}
+	}
+	return chirps
+}
+
+// variant is "asc" or "desc"
+// TODO: replace with more efficient sorting algo like quicksort og merge
+func SortChirps(variant string, chirps []Chirp) []Chirp {
+	if variant == "desc" {
+		slices.Reverse(chirps)
+	}
+	return chirps
 }
 
 func (db *DB) DeleteChirp(chirpID, authorID int) error {
