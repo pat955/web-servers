@@ -15,17 +15,21 @@ type Login struct {
 	ExpiresInSeconds int    `json:"expires_in_seconds"`
 }
 
-// return statuscode and the tokenstring(if successful) or error message as string
+// return statuscode and the tokenstring or apikey(if successful) or error message as string
 func GetAuthFromRequest(req *http.Request) (int, string) {
 	auth := req.Header.Get("Authorization")
-	if auth == "Bearer: " || auth == "" {
+	if auth == "Bearer: " || auth == "" || auth == "ApiKey " {
 		return 401, "Authorization header missing"
 	}
 	tokenString := strings.Split(auth, "Bearer ")
-	if len(tokenString) != 2 {
-		return 401, "Invalid Authorization header format"
+	if len(tokenString) == 2 {
+		return 200, tokenString[1]
 	}
-	return 200, tokenString[1]
+	apiKey := strings.Split(auth, "ApiKey ")
+	if len(apiKey) == 2 {
+		return 200, apiKey[1]
+	}
+	return 401, "Invalid Authorization header format"
 }
 
 // extracts jwt token
